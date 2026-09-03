@@ -303,7 +303,27 @@ class KafiDownloader:
                 else:
                     final_df = std_df
             else:
+                # =========================================================================
+                # KIỂM TRA TÍNH ĐẦY ĐỦ CỦA DÒNG TIỀN 4 NHÓM
+                # =========================================================================
+                if not is_index:
+                    # Nếu Kafi chưa chốt sổ dữ liệu Cá nhân & Tổ chức (vẫn = 0/NaN), tạm thời bỏ qua phiên đó
+                    incomplete_mask = (std_df["GT Cá Nhân Khớp Ròng"] == 0) & (std_df["GT Tổ chức Khớp Ròng"] == 0)
+                    if incomplete_mask.any():
+                        skipped_dates = list(std_df.loc[incomplete_mask, "NGÀY"])
+                        std_df = std_df[~incomplete_mask].copy()
+                        # print(f"⏳ [{symbol}] Phiên {skipped_dates} Kafi chưa cập nhật phân loại NĐT (vẫn là 0). Tạm thời chờ chốt sổ.")
+
                 std_df["_check_date"] = pd.to_datetime(std_df["NGÀY"], format="%d/%m/%Y", errors="coerce").dt.strftime("%Y-%m-%d")
+                
+                # Cập nhật đè nếu file cũ bị dính phiên có dòng tiền = 0
+                if not is_index and not existing_df.empty:
+                    old_incomplete = (existing_df["GT Cá Nhân Khớp Ròng"] == 0) & (existing_df["GT Tổ chức Khớp Ròng"] == 0)
+                    if old_incomplete.any():
+                        existing_df = existing_df[~old_incomplete].copy()
+                        d_conv = pd.to_datetime(existing_df["NGÀY"], errors="coerce", dayfirst=True)
+                        existing_dates = set(d_conv.dt.strftime("%Y-%m-%d").dropna())
+
                 new_rows = std_df[~std_df["_check_date"].isin(existing_dates)].copy()
                 new_rows.drop(columns=["_check_date"], inplace=True)
                 std_df.drop(columns=["_check_date"], inplace=True)
@@ -312,7 +332,7 @@ class KafiDownloader:
                     print(f"ℹ️ [{symbol}] Đã ở trạng thái mới nhất ({fetch_time:.2f}s).", flush=True)
                     return
 
-                print(f"🔥 [{symbol}] Tải {len(std_df)} phiên ({fetch_time:.2f}s) -> Thêm mới {len(new_rows)} phiên.", flush=True)
+                print(f"🔥 [{symbol}] Tải {len(std_df)} phiên ({fetch_time:.2f}s) -> Thêm mới {len(new_rows)} phiên chuẩn dòng tiền.", flush=True)
                 final_df = pd.concat([new_rows, existing_df], ignore_index=True)
 
         final_df = final_df.reindex(columns=TARGET_COLUMNS)
