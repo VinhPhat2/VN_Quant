@@ -1,0 +1,39 @@
+name: Daily Stock Data Updater
+
+on:
+  schedule:
+    # 08:45 UTC = 15:45 Gi? Vi?t Nam (Th? 2 d?n Th? 6 sau gi? dóng c?a HOSE)
+    - cron: '45 8 * * 1-5'
+  workflow_dispatch: # Cho phép b?m nút ch?y th? b?ng tay b?t k? lúc nào trên GitHub
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir requests pandas
+
+      - name: Run Kafi Downloader (Update 387 stocks EOD)
+        run: |
+          python kafi_downloader.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add csv_data/ fiintrade_master_map.json
+          if git diff --staged --quiet; then
+            echo 'No new data today'
+          else
+            git commit -m 'Auto-update daily stock data [skip ci]'
+            git push
+          fi

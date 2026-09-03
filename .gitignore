@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+.streamlit/
+code.txt
+test_kafi_runner.py
+test_callapy.ipynb
