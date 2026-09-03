@@ -2,8 +2,12 @@ name: Daily Stock Data Updater
 
 on:
   schedule:
-    # 11:00 UTC = 18:00 Gi? Vi?t Nam (Th? 2 d?n Th? 6, sau khi Kafi c?p nh?t d?y d? dòng ti?n sau 17h)
+    # 11:00 UTC = 18:00 Gi? VN (Th? 2 d?n Th? 6, sau khi k?t thúc phiên giao d?ch)
     - cron: '0 11 * * 1-5'
+    # 16:00 UTC = 23:00 Gi? VN (Th? 2 d?n Th? 6, sau khi Kafi/FiinTrade d?i soát xong s? li?u Cá nhân & T? ch?c)
+    - cron: '0 16 * * 1-5'
+    # 01:30 UTC = 08:30 Sáng Gi? VN (Th? 2 d?n Th? 6, quét ch?t s? l?n cu?i tru?c gi? m? phiên 09:00)
+    - cron: '30 1 * * 1-5'
   workflow_dispatch: # Cho phép b?m nút ch?y th? b?ng tay b?t k? lúc nào trên GitHub
 
 jobs:
@@ -32,7 +36,7 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add csv_data/ fiintrade_master_map.json
           if git diff --staged --quiet; then
-            echo 'No new data today'
+            echo 'No new data today or flow data pending'
           else
             git commit -m 'Auto-update daily stock data & dividend adjusted prices [skip ci]'
             git push
