@@ -2,8 +2,8 @@ name: Daily Stock Data Updater
 
 on:
   schedule:
-    # 08:45 UTC = 15:45 Gi? Vi?t Nam (Th? 2 d?n Th? 6 sau gi? dóng c?a HOSE)
-    - cron: '45 8 * * 1-5'
+    # 11:00 UTC = 18:00 Gi? Vi?t Nam (Th? 2 d?n Th? 6, sau khi Kafi c?p nh?t d?y d? dòng ti?n sau 17h)
+    - cron: '0 11 * * 1-5'
   workflow_dispatch: # Cho phép b?m nút ch?y th? b?ng tay b?t k? lúc nào trên GitHub
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         run: |
           pip install --no-cache-dir requests pandas
 
-      - name: Run Kafi Downloader (Update 387 stocks EOD)
+      - name: Run Kafi Downloader (Update 387 stocks EOD + Dividend Adjustment Check)
         run: |
           python kafi_downloader.py
 
@@ -34,6 +34,6 @@ jobs:
           if git diff --staged --quiet; then
             echo 'No new data today'
           else
-            git commit -m 'Auto-update daily stock data [skip ci]'
+            git commit -m 'Auto-update daily stock data & dividend adjusted prices [skip ci]'
             git push
           fi

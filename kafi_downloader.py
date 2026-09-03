@@ -1,4 +1,4 @@
-﻿"""
+"""
 KAFI / FIINTRADE MARKET DATA DOWNLOADER - FULL HOSE & INCREMENTAL UPDATER
 ------------------------------------------------------------------------
 Tự động cập nhật dữ liệu hàng ngày cho toàn bộ sàn HOSE (405 mã) và các chỉ số thị trường.
@@ -255,17 +255,65 @@ class KafiDownloader:
             final_df = std_df
             print(f"🔥 [{symbol}] Tải mới toàn bộ {len(final_df)} phiên ({fetch_time:.2f}s) có đầy đủ dòng tiền.", flush=True)
         else:
-            std_df["_check_date"] = pd.to_datetime(std_df["NGÀY"], format="%d/%m/%Y", errors="coerce").dt.strftime("%Y-%m-%d")
-            new_rows = std_df[~std_df["_check_date"].isin(existing_dates)].copy()
-            new_rows.drop(columns=["_check_date"], inplace=True)
-            std_df.drop(columns=["_check_date"], inplace=True)
+            # =========================================================================
+            # KIỂM TRA BẤT THƯỜNG DO CHIA CỔ TỨC / PHÁT HÀNH THÊM (CORPORATE ACTIONS)
+            # =========================================================================
+            has_dividend_split = False
+            
+            # 1. Kiểm tra cờ quyền split / benefit trong raw Kafi
+            if not is_index:
+                for col in ["split", "benefit"]:
+                    if col in raw_df.columns:
+                        non_empty = raw_df[col].dropna()
+                        if not non_empty.empty and any(str(x).strip() not in ("", "None", "nan", "0") for x in non_empty.head(10)):
+                            has_dividend_split = True
+                            print(f"⚡ [{symbol}] Kafi báo cờ sự kiện quyền ({col}): {non_empty.iloc[0]}", flush=True)
+                            break
 
-            if new_rows.empty:
-                print(f"ℹ️ [{symbol}] Đã ở trạng thái mới nhất ({fetch_time:.2f}s).", flush=True)
-                return
+            # 2. Kiểm tra lệch giá tham chiếu phiên mới so với giá đóng cửa phiên trước (reprice)
+            if not has_dividend_split and not is_index and len(raw_df) >= 2:
+                if "referencePrice" in raw_df.columns and "closePrice" in raw_df.columns:
+                    ref_p = float(raw_df["referencePrice"].iloc[0] or 0)
+                    prev_close = float(raw_df["closePrice"].iloc[1] or 0)
+                    if ref_p > 0 and prev_close > 0 and abs(ref_p - prev_close) > 100:
+                        has_dividend_split = True
+                        print(f"⚡ [{symbol}] Phát hiện re-price bất thường: Tham chiếu={ref_p:,.0f} vs Đóng cửa cũ={prev_close:,.0f}", flush=True)
 
-            print(f"🔥 [{symbol}] Tải {len(std_df)} phiên ({fetch_time:.2f}s) -> Thêm mới {len(new_rows)} phiên.", flush=True)
-            final_df = pd.concat([new_rows, existing_df], ignore_index=True)
+            # 3. Kiểm tra hồi tố giá đóng cửa cũ trong file CSV vs giá điều chỉnh mới từ Kafi
+            if not has_dividend_split and not is_index and not existing_df.empty:
+                common_dates = set(existing_df["NGÀY"]).intersection(set(std_df["NGÀY"]))
+                if common_dates:
+                    try:
+                        latest_common = sorted(list(common_dates), key=lambda x: pd.to_datetime(x, format="%d/%m/%Y", errors="coerce"))[-1]
+                        old_close = float(existing_df.loc[existing_df["NGÀY"] == latest_common, "GIÁ"].iloc[0] or 0)
+                        new_close = float(std_df.loc[std_df["NGÀY"] == latest_common, "GIÁ"].iloc[0] or 0)
+                        if old_close > 0 and new_close > 0 and abs(old_close - new_close) / old_close > 0.005:
+                            has_dividend_split = True
+                            print(f"⚡ [{symbol}] Phát hiện Kafi điều chỉnh hồi tố giá do chia cổ tức tại {latest_common}: Cũ={old_close:,.0f} -> Mới={new_close:,.0f}", flush=True)
+                    except Exception:
+                        pass
+
+            # Nếu phát hiện chia cổ tức / chia tách: Tải lại toàn bộ 1800 phiên để cập nhật đồng bộ toàn bộ chuỗi giá điều chỉnh
+            if has_dividend_split:
+                print(f"🔄 [{symbol}] TỰ ĐỘNG ĐIỀU CHỈNH GIÁ: Tải lại toàn bộ lịch sử 1.800 phiên để đồng bộ giá điều chỉnh...", flush=True)
+                raw_df_full = self.fetch_raw(symbol, total_bars=1800)
+                if not raw_df_full.empty:
+                    final_df = self.transform(raw_df_full)
+                    print(f"✅ [{symbol}] Đã cập nhật lại toàn bộ chuỗi giá điều chỉnh cổ tức ({len(final_df)} phiên).", flush=True)
+                else:
+                    final_df = std_df
+            else:
+                std_df["_check_date"] = pd.to_datetime(std_df["NGÀY"], format="%d/%m/%Y", errors="coerce").dt.strftime("%Y-%m-%d")
+                new_rows = std_df[~std_df["_check_date"].isin(existing_dates)].copy()
+                new_rows.drop(columns=["_check_date"], inplace=True)
+                std_df.drop(columns=["_check_date"], inplace=True)
+
+                if new_rows.empty:
+                    print(f"ℹ️ [{symbol}] Đã ở trạng thái mới nhất ({fetch_time:.2f}s).", flush=True)
+                    return
+
+                print(f"🔥 [{symbol}] Tải {len(std_df)} phiên ({fetch_time:.2f}s) -> Thêm mới {len(new_rows)} phiên.", flush=True)
+                final_df = pd.concat([new_rows, existing_df], ignore_index=True)
 
         final_df = final_df.reindex(columns=TARGET_COLUMNS)
 
