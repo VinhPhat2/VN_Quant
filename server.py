@@ -460,16 +460,43 @@ def get_vci_financial_data(symbol: str):
 
 _stock_cache = {}
 
+@app.get("/api/clear-cache")
+def clear_cache():
+    _stock_cache.clear()
+    _financial_cache.clear()
+    return {"status": "success", "message": "All caches cleared successfully"}
+
+@app.get("/api/system-status")
+def system_status():
+    data_dir = get_data_dir()
+    ssi_path = get_file_path("SSI", data_dir)
+    latest_ssi_date = None
+    if ssi_path and os.path.exists(ssi_path):
+        try:
+            df = pd.read_csv(ssi_path, nrows=5)
+            latest_ssi_date = str(df.iloc[0, 0])
+        except Exception as e:
+            latest_ssi_date = str(e)
+    csv_count = len([f for f in os.listdir(data_dir) if f.endswith(".csv")]) if (data_dir and os.path.exists(data_dir)) else 0
+    return {
+        "status": "online",
+        "latest_ssi_date": latest_ssi_date,
+        "csv_count": csv_count,
+        "cache_entries": len(_stock_cache),
+        "data_dir": data_dir
+    }
+
 @app.get("/api/stock/{symbol}")
 def get_stock_analysis(symbol: str, theme: str = "dark"):
     symbol = symbol.upper()
-    cache_key = f"{symbol}_{theme}"
+    data_dir = get_data_dir()
+    file_path = get_file_path(symbol, data_dir)
+    mtime = os.path.getmtime(file_path) if file_path and os.path.exists(file_path) else 0
+    cache_key = f"{symbol}_{theme}_{mtime}"
     if cache_key in _stock_cache:
         return _stock_cache[cache_key]
 
     res_path = get_result_path()
-    data_dir = get_data_dir()
-    
     if not os.path.exists(res_path):
         raise HTTPException(status_code=404, detail="Result file not found")
     
@@ -482,7 +509,6 @@ def get_stock_analysis(symbol: str, theme: str = "dark"):
     a, b, c, d = int(row["a"]), int(row["b"]), int(row["c"]), int(row["d"])
     alpha = float(row["chosen_alpha"])
     
-    file_path = get_file_path(symbol, data_dir)
     if not file_path:
         raise HTTPException(status_code=404, detail="Stock data file not found")
         
