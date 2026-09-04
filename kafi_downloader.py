@@ -189,6 +189,13 @@ class KafiDownloader:
                 _get_val(row, "foreignBuyValueMatched") - _get_val(row, "foreignSellValueMatched")
             )
 
+            # Nếu Kafi chưa kịp bóc tách Cá nhân & Tổ chức nội (vẫn là 0/NaN):
+            # Quy luật khớp lệnh sàn HOSE: Tổng dòng tiền luôn cân bằng về 0:
+            # (Ngoại + Tự Doanh + Trong Nước = 0) -> Dòng tiền Trong Nước (Cá nhân) = -(Ngoại + Tự Doanh)
+            if gt_ca_nhan == 0 and gt_to_chuc == 0 and (gt_nuoc_ngoai != 0 or gt_tu_doanh != 0):
+                gt_ca_nhan = -(gt_nuoc_ngoai + gt_tu_doanh)
+                kl_ca_nhan = -(kl_nuoc_ngoai + kl_tu_doanh)
+
             gia_dieu_chinh = _get_val(row, "closeValue", "closePrice", "ClosePrice")
             gia_tho = _get_val(row, "referencePrice", "close_raw", "rawClose", "unadjustedClose", default=gia_dieu_chinh)
 
@@ -303,17 +310,6 @@ class KafiDownloader:
                 else:
                     final_df = std_df
             else:
-                # =========================================================================
-                # KIỂM TRA TÍNH ĐẦY ĐỦ CỦA DÒNG TIỀN 4 NHÓM
-                # =========================================================================
-                if not is_index:
-                    # Nếu Kafi chưa chốt sổ dữ liệu Cá nhân & Tổ chức (vẫn = 0/NaN), tạm thời bỏ qua phiên đó
-                    incomplete_mask = (std_df["GT Cá Nhân Khớp Ròng"] == 0) & (std_df["GT Tổ chức Khớp Ròng"] == 0)
-                    if incomplete_mask.any():
-                        skipped_dates = list(std_df.loc[incomplete_mask, "NGÀY"])
-                        std_df = std_df[~incomplete_mask].copy()
-                        # print(f"⏳ [{symbol}] Phiên {skipped_dates} Kafi chưa cập nhật phân loại NĐT (vẫn là 0). Tạm thời chờ chốt sổ.")
-
                 std_df["_check_date"] = pd.to_datetime(std_df["NGÀY"], format="%d/%m/%Y", errors="coerce").dt.strftime("%Y-%m-%d")
                 
                 # Cập nhật đè nếu file cũ bị dính phiên có dòng tiền = 0
@@ -363,16 +359,27 @@ if __name__ == "__main__":
     print(f"📁 Thư mục lưu: {os.path.abspath(OUTPUT_DIRECTORY)}", flush=True)
     print("=" * 70, flush=True)
 
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     # 1. Cập nhật chỉ số
     for idx_sym in INDEX_LIST:
         downloader.sync_to_csv(idx_sym, output_dir=OUTPUT_DIRECTORY, is_index=True)
-        time.sleep(0.15)
 
-    # 2. Cập nhật tất cả cổ phiếu HOSE
-    for i, sym in enumerate(stock_list, 1):
-        print(f"[{i:03d}/{len(stock_list):03d}] Cập nhật: {sym}", flush=True)
-        downloader.sync_to_csv(sym, output_dir=OUTPUT_DIRECTORY, is_index=False)
-        time.sleep(0.15)
+    # 2. Cập nhật tất cả cổ phiếu HOSE đa luồng (8 workers) siêu tốc
+    print(f"⚡ Đang chạy song song 8 luồng cập nhật cho {len(stock_list)} mã cổ phiếu...", flush=True)
+    completed_cnt = 0
+    def _sync_worker(s):
+        try:
+            downloader.sync_to_csv(s, output_dir=OUTPUT_DIRECTORY, is_index=False)
+        except Exception as err:
+            print(f"❌ [{s}] Lỗi sync: {err}")
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(_sync_worker, sym): sym for sym in stock_list}
+        for future in as_completed(futures):
+            completed_cnt += 1
+            if completed_cnt % 50 == 0 or completed_cnt == len(stock_list):
+                print(f"✅ Đã xử lý {completed_cnt}/{len(stock_list)} mã cổ phiếu...", flush=True)
 
     print("=" * 70, flush=True)
     print(f"🎉 HOÀN THÀNH CẬP NHẬT TOÀN BỘ {len(stock_list)} MÃ SÀN HOSE VÀ {len(INDEX_LIST)} CHỈ SỐ!", flush=True)
