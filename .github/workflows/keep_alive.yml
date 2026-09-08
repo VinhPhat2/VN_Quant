@@ -1,8 +1,10 @@
 name: Render Service Keep-Alive
 
 on:
+  push:
+    branches: [main]
   schedule:
-    # Chạy mỗi 10 phút để server Render không bị ngủ đông (cold start)
+    # Chạy định kỳ mỗi 10 phút để server Render không bị ngủ đông (cold start)
     - cron: '*/10 * * * *'
   workflow_dispatch: # Cho phép kích hoạt thủ công từ tab Actions trên GitHub
 
@@ -13,10 +15,11 @@ jobs:
       - name: Ping Render Backend
         run: |
           echo "Sending keep-alive ping to Render service..."
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://vn-quant-mf5g.onrender.com/system-status)
-          echo "Render HTTP Status: $RESPONSE"
-          if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 301 ] || [ "$RESPONSE" -eq 302 ]; then
-            echo "Server is active and awake!"
-          else
-            echo "Server pinged with status $RESPONSE"
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://vn-quant-mf5g.onrender.com/api/system-status)
+          echo "Render /api/system-status HTTP Status: $RESPONSE"
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Fallback pinging root / ..."
+            RESPONSE_ROOT=$(curl -s -o /dev/null -w "%{http_code}" https://vn-quant-mf5g.onrender.com/)
+            echo "Render / HTTP Status: $RESPONSE_ROOT"
           fi
+          echo "Keep-alive ping completed successfully!"
