@@ -235,6 +235,24 @@ def get_screener():
     df["score"] = df["score"].round(3)
     df["chosen_alpha"] = df["chosen_alpha"].round(2)
     df["sector"] = df["symbol"].apply(get_symbol_sector)
+
+    # Merge dynamic latest deciles from cache if available
+    cache_path = os.path.join(os.path.dirname(__file__), "latest_deciles_cache.csv")
+    if os.path.exists(cache_path):
+        try:
+            df_cache = pd.read_csv(cache_path)
+            df = df.merge(df_cache, on="symbol", how="left")
+        except Exception:
+            pass
+    if "latest_decile" not in df.columns:
+        df["latest_decile"] = 5
+        df["latest_pred_ret"] = 0.0
+        df["n_deciles"] = 10
+    else:
+        df["latest_decile"] = df["latest_decile"].fillna(5).astype(int)
+        df["latest_pred_ret"] = df["latest_pred_ret"].fillna(0.0).astype(float)
+        df["n_deciles"] = df["n_deciles"].fillna(10).astype(int)
+
     return df.to_dict(orient="records")
 
 # 100% Exact Notebook RdYlGn calculation normalized by (n_deciles - 1)
@@ -655,9 +673,11 @@ def get_stock_analysis(symbol: str, theme: str = "dark"):
     _stock_cache[cache_key] = result
     return result
 
+@app.api_route("/system-status", methods=["GET", "HEAD"])
+@app.api_route("/health", methods=["GET", "HEAD"])
 @app.api_route("/healthz", methods=["GET", "HEAD"])
 def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "service": "VN-Quant Alpha Terminal"}
 
 @app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 def index_page():
@@ -756,7 +776,7 @@ def index_page():
         <button onclick="switchTab('tab-technical')" id="btn-tab-technical" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Phân Tích Kỹ Thuật (RSI & MACD)</button>
         <button onclick="switchTab('tab-flow')" id="btn-tab-flow" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Dòng Tiền 4 Nhóm NĐT</button>
         <button onclick="switchTab('tab-sectors')" id="btn-tab-sectors" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Sức Mạnh Nhóm Ngành</button>
-        <button onclick="switchTab('tab-spikes')" id="btn-tab-spikes" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Radar Gom Đột Biến</button>
+        <button onclick="switchTab('tab-spikes')" id="btn-tab-spikes" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Bộ Lọc Dòng Tiền Đột Biến</button>
         <button onclick="switchTab('tab-financials')" id="btn-tab-financials" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Báo Cáo Tài Chính (VCI)</button>
         <button onclick="switchTab('tab-features')" id="btn-tab-features" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Bóc Tách Nhân Tố</button>
         <button onclick="switchTab('tab-audit')" id="btn-tab-audit" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Kiểm Định Mô Hình</button>
@@ -776,9 +796,9 @@ def index_page():
                 <span id="heroSignal" class="text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40">TĂNG MẠNH (DECILE 10)</span>
             </div>
             <div class="flex items-center space-x-2 text-xs font-mono text-slate-700 dark:text-slate-300 flex-wrap gap-y-2">
-                <span id="heroScore" class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark px-3 py-1.5 rounded-md">Score: <b>0.625</b></span>
-                <span id="heroIC" class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark px-3 py-1.5 rounded-md">IC OOS: <b class="text-emerald-600 dark:text-emerald-400">0.325</b></span>
-                <span id="heroHit" class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark px-3 py-1.5 rounded-md">Hit: <b class="text-sky-600 dark:text-cyan-400">65.0%</b></span>
+                <span id="heroScore" class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark px-3 py-1.5 rounded-md" title="Độ tin cậy huấn luyện của mô hình">Độ tin cậy (Score): <b>0.625</b></span>
+                <span id="heroIC" class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark px-3 py-1.5 rounded-md" title="Hệ số tương quan xếp hạng ngoài mẫu (Độ uy tín OOS)">IC OOS: <b class="text-emerald-600 dark:text-emerald-400">0.325</b></span>
+                <span id="heroHit" class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark px-3 py-1.5 rounded-md" title="Tỷ lệ dự báo đúng chiều ngoài mẫu">Hit Rate OOS: <b class="text-sky-600 dark:text-cyan-400">65.0%</b></span>
                 <span id="heroParams" class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark px-3 py-1.5 rounded-md text-slate-500 dark:text-slate-400">a=20 b=20 c=30 d=10 α=1000.0</span>
             </div>
         </div>
@@ -841,24 +861,34 @@ def index_page():
             </div>
         </div>
 
-        <!-- TAB 4: SECTOR BREADTH & MOMENTUM (ENHANCED VISIBILITY) -->
+        <!-- TAB 4: SECTOR BREADTH & MOMENTUM (QUANT DECILE BASED) -->
         <div id="tab-sectors" class="tab-content hidden space-y-6">
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-6 shadow-sm space-y-6">
-                <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Sức Mạnh Dòng Tiền & Điểm Số Định Lượng Theo Nhóm Ngành</h3>
-                    <span class="text-xs text-slate-500 font-mono">Điểm trung bình Score lượng hóa của toàn bộ 387 mã theo ngành</span>
+                <div class="flex flex-wrap justify-between items-center gap-2">
+                    <div>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Độ Rộng Dòng Tiền & Sức Mạnh Nhóm Ngành (Sector Breadth)</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">Xếp hạng theo % mã có Tín hiệu Mua (Decile 8-10) và Lợi nhuận dự báo T+10 trung bình</p>
+                    </div>
+                    <span class="text-xs text-emerald-500 font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30">Dữ liệu phân vùng Decile lượng hóa</span>
                 </div>
                 <div class="h-80"><canvas id="sectorChart"></canvas></div>
                 <div id="sectorTableContainer" class="overflow-x-auto rounded-lg border border-slate-200 dark:border-brand-borderDark"></div>
             </div>
         </div>
 
-        <!-- TAB 5: SMART MONEY SPIKE RADAR -->
+        <!-- TAB 5: ALPHA FLOW SCANNER (FORMERLY RADAR GOM ĐỘT BIẾN) -->
         <div id="tab-spikes" class="tab-content hidden space-y-6">
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-6 shadow-sm space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Radar Cảnh Báo Gom Đột Biến & Bắt Đáy (Smart Money Spike Scanner)</h3>
-                    <span class="text-xs text-slate-500 font-mono">Phát hiện dòng tiền lớn mua ròng bất thường</span>
+                <div class="flex flex-wrap justify-between items-center gap-2">
+                    <div>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Bộ Lọc Dòng Tiền Đột Biến & Tín Hiệu Mua Alpha (Alpha Flow Scanner)</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">Sàng lọc cổ phiếu có tín hiệu dự báo Mua (Decile 8-10) kết hợp mô hình có độ uy tín cao (IC OOS ≥ 0.10)</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400 font-mono">Chế độ lọc:</span>
+                        <button id="btnSpikesTop" onclick="renderSpikesRadar('buy_top')" class="px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50">Top Decile 9-10</button>
+                        <button id="btnSpikesAll" onclick="renderSpikesRadar('all_signals')" class="px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Tất Cả Tín Hiệu Mua</button>
+                    </div>
                 </div>
                 <div id="spikesTableContainer" class="overflow-x-auto rounded-lg border border-slate-200 dark:border-brand-borderDark"></div>
             </div>
@@ -961,13 +991,17 @@ def index_page():
         <div id="tab-screener" class="tab-content hidden space-y-6">
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-5 shadow-sm">
                 <div class="flex flex-wrap justify-between items-center mb-4 gap-3">
-                    <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Bảng Xếp Hạng Alpha Toàn Bộ Thị Trường (387 Mã)</h3>
+                    <div>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Bảng Xếp Hạng Alpha & Dự Báo Toàn Thị Trường (387 Mã)</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">Phân định rõ ràng: Decile là Dự báo hành động, IC/Score là Độ uy tín mô hình</p>
+                    </div>
                     
-                    <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-2 flex-wrap gap-y-2">
                         <button onclick="filterScreenerByBadge('all')" class="px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Tất Cả</button>
-                        <button onclick="filterScreenerByBadge('top_ic')" class="px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500">IC ≥ 0.15</button>
-                        <button onclick="filterScreenerByBadge('top_hit')" class="px-2.5 py-1 text-xs font-mono rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500">Hit ≥ 60%</button>
-                        <input id="screenerSearchTab" onkeyup="filterScreenerFullTable()" type="text" placeholder="Tìm mã CP..." class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-brand-borderDark px-3 py-1.5 rounded-lg text-xs font-mono text-slate-900 dark:text-white w-48 focus:outline-none focus:border-emerald-500">
+                        <button onclick="filterScreenerByBadge('buy')" class="px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500 font-semibold">Tín Hiệu Mua (Decile 8-10)</button>
+                        <button onclick="filterScreenerByBadge('top_ic')" class="px-2.5 py-1 text-xs font-mono rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500">IC OOS ≥ 0.15 (Uy tín cao)</button>
+                        <button onclick="filterScreenerByBadge('top_hit')" class="px-2.5 py-1 text-xs font-mono rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500">Hit ≥ 60%</button>
+                        <input id="screenerSearchTab" onkeyup="filterScreenerFullTable()" type="text" placeholder="Tìm mã CP / Ngành..." class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-brand-borderDark px-3 py-1.5 rounded-lg text-xs font-mono text-slate-900 dark:text-white w-48 focus:outline-none focus:border-emerald-500">
                     </div>
                 </div>
                 <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-brand-borderDark max-h-[650px] overflow-y-auto">
@@ -976,9 +1010,12 @@ def index_page():
                             <tr>
                                 <th class="p-3 font-bold">Mã CP</th>
                                 <th class="p-3">Ngành</th>
-                                <th class="p-3 text-right">Score</th>
-                                <th class="p-3 text-right">IC OOS</th>
+                                <th class="p-3 text-center">Decile Dự Báo</th>
+                                <th class="p-3 text-right">Dự Báo T+10 (%)</th>
+                                <th class="p-3 text-center">Tín Hiệu</th>
+                                <th class="p-3 text-right">IC OOS (Uy tín)</th>
                                 <th class="p-3 text-right">Hit OOS %</th>
+                                <th class="p-3 text-right">Score Mô Hình</th>
                                 <th class="p-3 text-right">IC Train</th>
                                 <th class="p-3 text-right">Alpha</th>
                                 <th class="p-3 text-right">a</th>
@@ -988,7 +1025,7 @@ def index_page():
                             </tr>
                         </thead>
                         <tbody id="screenerFullTableBody" class="divide-y divide-slate-200 dark:divide-slate-800">
-                            <tr><td colspan="11" class="text-center p-6 text-slate-400">Đang tải danh sách 387 mã...</td></tr>
+                            <tr><td colspan="14" class="text-center p-6 text-slate-400">Đang tải danh sách 387 mã...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1234,22 +1271,44 @@ def index_page():
             }
         }
 
-        // Render Sector Breadth (Always Visible Bars with Average Quant Score)
+        // Render Sector Breadth (Quant Decile & Forward Return Based)
         function renderSectorBreadth() {
             if (allScreenerData.length === 0) return;
             const sectorStats = {};
             allScreenerData.forEach(d => {
                 const sec = d.sector || 'Khác / Sản xuất';
-                if (!sectorStats[sec]) sectorStats[sec] = { count: 0, total_score: 0, top_ic_count: 0, symbols: [] };
+                if (!sectorStats[sec]) {
+                    sectorStats[sec] = { 
+                        count: 0, 
+                        total_score: 0, 
+                        total_ic: 0, 
+                        total_decile: 0, 
+                        total_pred_ret: 0,
+                        buy_count: 0, 
+                        symbols: [] 
+                    };
+                }
                 sectorStats[sec].count++;
-                sectorStats[sec].total_score += d.score;
+                sectorStats[sec].total_score += (d.score || 0);
+                sectorStats[sec].total_ic += (d.oos_ic || 0);
+                const dec = d.latest_decile || 5;
+                sectorStats[sec].total_decile += dec;
+                sectorStats[sec].total_pred_ret += (d.latest_pred_ret || 0);
+                if (dec >= 8) sectorStats[sec].buy_count++;
                 sectorStats[sec].symbols.push(d);
-                if (d.oos_ic >= 0.1) sectorStats[sec].top_ic_count++;
             });
 
-            const labels = Object.keys(sectorStats).sort((a,b) => (sectorStats[b].total_score/sectorStats[b].count) - (sectorStats[a].total_score/sectorStats[a].count));
-            const avgScores = labels.map(s => parseFloat((sectorStats[s].total_score / sectorStats[s].count).toFixed(3)));
-            const barColors = avgScores.map(sc => sc >= 0.45 ? '#10B981' : (sc >= 0.35 ? '#00E5FF' : '#F59E0B'));
+            // Sắp xếp ngành theo: % mã có tín hiệu Mua (Decile 8-10), sau đó theo Lợi nhuận dự báo TB
+            const labels = Object.keys(sectorStats).sort((a, b) => {
+                const ratioA = sectorStats[a].buy_count / sectorStats[a].count;
+                const ratioB = sectorStats[b].buy_count / sectorStats[b].count;
+                if (ratioB !== ratioA) return ratioB - ratioA;
+                return (sectorStats[b].total_pred_ret / sectorStats[b].count) - (sectorStats[a].total_pred_ret / sectorStats[a].count);
+            });
+
+            const buyRatios = labels.map(s => parseFloat(((sectorStats[s].buy_count / sectorStats[s].count) * 100).toFixed(1)));
+            const avgPredRets = labels.map(s => parseFloat((sectorStats[s].total_pred_ret / sectorStats[s].count).toFixed(2)));
+            const barColors = buyRatios.map(r => r >= 40 ? '#10B981' : (r >= 25 ? '#00E5FF' : (r >= 15 ? '#F59E0B' : '#64748B')));
 
             const ctx = document.getElementById('sectorChart').getContext('2d');
             if (sectorChartInstance) sectorChartInstance.destroy();
@@ -1262,7 +1321,23 @@ def index_page():
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'Điểm Sức Mạnh Định Lượng TB (Average Quant Score)', data: avgScores, backgroundColor: barColors, borderRadius: 4 }
+                        { 
+                            label: 'Tỷ Lệ Mã Có Tín Hiệu Mua (Decile 8-10) %', 
+                            data: buyRatios, 
+                            backgroundColor: barColors, 
+                            borderRadius: 4,
+                            yAxisID: 'y'
+                        },
+                        { 
+                            label: 'Lợi Nhuận Dự Báo T+10 TB (%)', 
+                            data: avgPredRets, 
+                            type: 'line',
+                            borderColor: '#A855F7',
+                            backgroundColor: '#A855F7',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            yAxisID: 'y1'
+                        }
                     ]
                 },
                 options: {
@@ -1271,13 +1346,32 @@ def index_page():
                         legend: { position: 'top', labels: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 12 } } },
                         tooltip: {
                             callbacks: {
-                                label: ctx => `Điểm TB: ${ctx.raw} (Số lượng: ${sectorStats[labels[ctx.dataIndex]].count} mã)`
+                                label: ctx => {
+                                    const sec = labels[ctx.dataIndex];
+                                    const info = sectorStats[sec];
+                                    if (ctx.datasetIndex === 0) {
+                                        return `% Tín hiệu Mua: ${ctx.raw}% (${info.buy_count}/${info.count} mã)`;
+                                    } else {
+                                        return `Dự báo LN T+10 TB: ${ctx.raw}%`;
+                                    }
+                                }
                             }
                         }
                     },
                     scales: {
                         x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 11 } } },
-                        y: { min: 0, max: 0.8, title: { display: true, text: 'Điểm Sức Mạnh (Score)', color: tickColor }, grid: { color: gridColor }, ticks: { color: tickColor } }
+                        y: { 
+                            min: 0, max: 100, 
+                            title: { display: true, text: '% Mã Tín Hiệu Mua (Decile 8-10)', color: tickColor }, 
+                            grid: { color: gridColor }, 
+                            ticks: { color: tickColor, callback: v => v + '%' } 
+                        },
+                        y1: { 
+                            position: 'right',
+                            title: { display: true, text: 'Dự Báo LN TB (%)', color: '#A855F7' }, 
+                            grid: { drawOnChartArea: false }, 
+                            ticks: { color: '#A855F7', callback: v => v + '%' } 
+                        }
                     }
                 }
             });
@@ -1289,33 +1383,75 @@ def index_page():
                     <tr>
                         <th class="p-3">Nhóm Ngành</th>
                         <th class="p-3 text-right">Số Lượng Mã</th>
-                        <th class="p-3 text-right">Điểm Sức Mạnh TB (Score)</th>
-                        <th class="p-3 text-right">% Mã IC OOS ≥ 0.1</th>
-                        <th class="p-3">Mã Dẫn Đầu Ngành</th>
+                        <th class="p-3 text-right">% Tín Hiệu Mua (D8-10)</th>
+                        <th class="p-3 text-right">Decile TB (1-10)</th>
+                        <th class="p-3 text-right">Dự Báo LN T+10 TB</th>
+                        <th class="p-3 text-right">Độ Uy Tín Mô Hình (IC OOS TB)</th>
+                        <th class="p-3">Mã Dẫn Đầu Tín Hiệu</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                     ${labels.map(sec => {
                         const info = sectorStats[sec];
-                        const topSym = info.symbols.sort((a,b)=>b.score-a.score)[0]?.symbol || '-';
-                        const avgSc = (info.total_score / info.count).toFixed(3);
+                        const sortedSyms = [...info.symbols].sort((a, b) => {
+                            if ((b.latest_decile || 5) !== (a.latest_decile || 5)) return (b.latest_decile || 5) - (a.latest_decile || 5);
+                            return (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
+                        });
+                        const topSymObj = sortedSyms[0];
+                        const topSym = topSymObj?.symbol || '-';
+                        const topDecile = topSymObj?.latest_decile || 5;
+                        const buyRatio = ((info.buy_count / info.count) * 100).toFixed(1);
+                        const avgDec = (info.total_decile / info.count).toFixed(1);
+                        const avgPred = (info.total_pred_ret / info.count).toFixed(2);
+                        const avgIC = (info.total_ic / info.count).toFixed(3);
                         return `
                         <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/80">
                             <td class="p-3 font-bold text-slate-900 dark:text-white">${sec}</td>
                             <td class="p-3 text-right text-slate-400">${info.count}</td>
-                            <td class="p-3 text-right font-bold text-emerald-500">${avgSc}</td>
-                            <td class="p-3 text-right font-semibold text-sky-400">${((info.top_ic_count / info.count) * 100).toFixed(1)}%</td>
-                            <td class="p-3 font-bold text-emerald-400 cursor-pointer" onclick="document.getElementById('symbolInput').value='${topSym}'; loadStock('${topSym}'); switchTab('tab-charts');">${topSym}</td>
+                            <td class="p-3 text-right font-bold ${buyRatio >= 30 ? 'text-emerald-500' : 'text-slate-300'}">${buyRatio}%</td>
+                            <td class="p-3 text-right font-semibold ${avgDec >= 6 ? 'text-emerald-400' : 'text-slate-400'}">${avgDec} / 10</td>
+                            <td class="p-3 text-right font-bold ${avgPred >= 0 ? 'text-emerald-500' : 'text-red-500'}">${avgPred >= 0 ? '+' : ''}${avgPred}%</td>
+                            <td class="p-3 text-right font-mono text-sky-400">${avgIC}</td>
+                            <td class="p-3 font-bold text-emerald-400 cursor-pointer" onclick="document.getElementById('symbolInput').value='${topSym}'; loadStock('${topSym}'); switchTab('tab-charts');">
+                                ${topSym} <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 ml-1">D${topDecile}</span>
+                            </td>
                         </tr>`;
                     }).join('')}
                 </tbody>
             </table>`;
         }
 
-        // Render Spikes Radar
-        function renderSpikesRadar() {
+        // Render Alpha Flow Scanner (formerly Radar Gom Đột Biến)
+        function renderSpikesRadar(mode = 'buy_top') {
             if (allScreenerData.length === 0) return;
-            const topSpikes = allScreenerData.slice(0, 15);
+
+            const btnTop = document.getElementById('btnSpikesTop');
+            const btnAll = document.getElementById('btnSpikesAll');
+            if (btnTop && btnAll) {
+                if (mode === 'buy_top') {
+                    btnTop.className = 'px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold';
+                    btnAll.className = 'px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
+                } else {
+                    btnAll.className = 'px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold';
+                    btnTop.className = 'px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
+                }
+            }
+
+            let candidates = allScreenerData.filter(d => (d.latest_decile || 5) >= (mode === 'buy_top' ? 9 : 8));
+            if (candidates.length < 10) {
+                candidates = allScreenerData.filter(d => (d.latest_decile || 5) >= 8);
+            }
+
+            // Sắp xếp ưu tiên: Decile (10 -> 9 -> 8) DESC, Lợi nhuận dự báo T+10 DESC, sau đó IC OOS (độ tin cậy) DESC
+            candidates.sort((a, b) => {
+                const decDiff = (b.latest_decile || 5) - (a.latest_decile || 5);
+                if (decDiff !== 0) return decDiff;
+                const retDiff = (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
+                if (retDiff !== 0) return retDiff;
+                return (b.oos_ic || 0) - (a.oos_ic || 0);
+            });
+
+            const topSpikes = candidates.slice(0, 20);
             const container = document.getElementById('spikesTableContainer');
             container.innerHTML = `
             <table class="w-full text-left border-collapse text-xs font-mono">
@@ -1323,23 +1459,36 @@ def index_page():
                     <tr>
                         <th class="p-3">Mã CP</th>
                         <th class="p-3">Ngành</th>
-                        <th class="p-3 text-right">Score</th>
-                        <th class="p-3 text-right">IC OOS</th>
-                        <th class="p-3 text-center">Tín Hiệu Đột Biến Dòng Tiền</th>
-                        <th class="p-3 text-center">Hành Động Gợi Ý</th>
+                        <th class="p-3 text-center">Decile Dự Báo</th>
+                        <th class="p-3 text-right">Dự Báo T+10 (%)</th>
+                        <th class="p-3 text-center">Tín Hiệu Định Lượng</th>
+                        <th class="p-3 text-center">Độ Uy Tín Mô Hình (IC OOS | Score)</th>
+                        <th class="p-3 text-center">Hành Động Đề Xuất</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                    ${topSpikes.map(r => `
+                    ${topSpikes.map(r => {
+                        const dec = r.latest_decile || 5;
+                        const pred = r.latest_pred_ret || 0;
+                        const decBadge = dec === 10 ? 'bg-emerald-600 text-white font-extrabold' : (dec === 9 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-emerald-500/10 text-emerald-500');
+                        const sigText = dec === 10 ? '🔥 TĂNG MẠNH NHẤT' : (dec === 9 ? '🚀 TÍN HIỆU GOM MẠNH' : '⚡ TÍCH LŨY MUA');
+                        const actionText = dec >= 9 ? 'MỞ VỊ THẾ MUA' : 'THEO DÕI MUA';
+                        const actionClass = dec >= 9 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-sky-500/10 text-sky-400';
+                        return `
                         <tr onclick="document.getElementById('symbolInput').value='${r.symbol}'; loadStock('${r.symbol}'); switchTab('tab-charts');" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
-                            <td class="p-3 font-bold text-slate-900 dark:text-white">${r.symbol}</td>
+                            <td class="p-3 font-bold text-slate-900 dark:text-white text-sm">${r.symbol}</td>
                             <td class="p-3 text-slate-400">${r.sector}</td>
-                            <td class="p-3 text-right font-bold text-emerald-400">${r.score.toFixed(3)}</td>
-                            <td class="p-3 text-right text-sky-400">${r.oos_ic.toFixed(3)}</td>
-                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">🔥 DÒNG TIỀN GOM MẠNH</span></td>
-                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-500/10 text-sky-400">MỞ VỊ THẾ MUA</span></td>
-                        </tr>
-                    `).join('')}
+                            <td class="p-3 text-center"><span class="px-2.5 py-1 rounded text-xs ${decBadge}">Decile ${dec} / ${r.n_deciles || 10}</span></td>
+                            <td class="p-3 text-right font-bold ${pred >= 0 ? 'text-emerald-400' : 'text-red-400'} text-sm">${pred >= 0 ? '+' : ''}${pred.toFixed(2)}%</td>
+                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">${sigText}</span></td>
+                            <td class="p-3 text-center">
+                                <span class="font-bold ${r.oos_ic >= 0.15 ? 'text-emerald-400' : 'text-sky-400'}">IC: ${r.oos_ic.toFixed(3)}</span>
+                                <span class="text-slate-500 mx-1">|</span>
+                                <span class="text-slate-400">Score: ${r.score.toFixed(3)}</span>
+                            </td>
+                            <td class="p-3 text-center"><span class="px-2.5 py-1 rounded text-[11px] ${actionClass}">${actionText}</span></td>
+                        </tr>`;
+                    }).join('')}
                 </tbody>
             </table>`;
         }
@@ -1650,19 +1799,45 @@ def index_page():
             });
         }
 
-        // Screener Full Table
+        // Screener Full Table (Decile & Return Forecast alongside Model Reliability)
         function renderScreenerFullRows(dataList) {
             const tbody = document.getElementById('screenerFullTableBody');
             tbody.innerHTML = dataList.map(r => {
+                const dec = r.latest_decile || 5;
+                const pred = r.latest_pred_ret || 0;
+                let decBadge = 'bg-slate-800 text-slate-300';
+                let sigText = 'Trung tính';
+                let sigClass = 'text-slate-400';
+                if (dec >= 9) {
+                    decBadge = 'bg-emerald-600 text-white font-bold';
+                    sigText = 'TĂNG MẠNH';
+                    sigClass = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+                } else if (dec === 8) {
+                    decBadge = 'bg-emerald-500/20 text-emerald-400';
+                    sigText = 'MUA TÍCH LŨY';
+                    sigClass = 'bg-emerald-500/10 text-emerald-400';
+                } else if (dec <= 2) {
+                    decBadge = 'bg-red-600 text-white font-bold';
+                    sigText = 'GIẢM MẠNH';
+                    sigClass = 'bg-red-500/10 text-red-400 border border-red-500/30';
+                } else if (dec === 3) {
+                    decBadge = 'bg-red-500/20 text-red-400';
+                    sigText = 'BÁN / THOÁT';
+                    sigClass = 'bg-red-500/10 text-red-400';
+                }
+
                 const icCol = r.oos_ic >= 0.15 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : (r.oos_ic < 0 ? 'text-red-600 dark:text-red-400' : '');
                 const hitCol = r.hit_rate_oos >= 60 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : (r.hit_rate_oos < 50 ? 'text-red-600 dark:text-red-400' : '');
                 return `
                 <tr onclick="document.getElementById('symbolInput').value='${r.symbol}'; loadStock('${r.symbol}'); switchTab('tab-charts');" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
                     <td class="p-3 font-bold text-slate-900 dark:text-white">${r.symbol}</td>
                     <td class="p-3 text-slate-400">${r.sector}</td>
-                    <td class="p-3 text-right font-semibold text-slate-800 dark:text-slate-200">${r.score.toFixed(3)}</td>
+                    <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] ${decBadge}">D${dec}</span></td>
+                    <td class="p-3 text-right font-bold ${pred >= 0 ? 'text-emerald-400' : 'text-red-400'}">${pred >= 0 ? '+' : ''}${pred.toFixed(2)}%</td>
+                    <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${sigClass}">${sigText}</span></td>
                     <td class="p-3 text-right ${icCol}">${r.oos_ic.toFixed(3)}</td>
                     <td class="p-3 text-right ${hitCol}">${r.hit_rate_oos.toFixed(1)}%</td>
+                    <td class="p-3 text-right font-semibold text-slate-800 dark:text-slate-200">${r.score.toFixed(3)}</td>
                     <td class="p-3 text-right text-slate-500 dark:text-slate-400">${r.train_ic.toFixed(3)}</td>
                     <td class="p-3 text-right text-slate-500 dark:text-slate-400">${r.chosen_alpha.toFixed(1)}</td>
                     <td class="p-3 text-right text-slate-500 dark:text-slate-400">${r.a}</td>
@@ -1681,6 +1856,7 @@ def index_page():
 
         function filterScreenerByBadge(type) {
             if (type === 'all') renderScreenerFullRows(allScreenerData);
+            else if (type === 'buy') renderScreenerFullRows(allScreenerData.filter(x => (x.latest_decile || 5) >= 8));
             else if (type === 'top_ic') renderScreenerFullRows(allScreenerData.filter(x => x.oos_ic >= 0.15));
             else if (type === 'top_hit') renderScreenerFullRows(allScreenerData.filter(x => x.hit_rate_oos >= 60));
         }
@@ -1689,7 +1865,16 @@ def index_page():
             try {
                 const res = await fetch('/api/screener');
                 allScreenerData = await res.json();
-                allScreenerData.sort((a, b) => b.score - a.score);
+                
+                // Mặc định sắp xếp theo Decile dự báo giảm dần (10 -> 1), sau đó theo Lợi nhuận dự báo, sau đó theo IC OOS
+                allScreenerData.sort((a, b) => {
+                    const decDiff = (b.latest_decile || 5) - (a.latest_decile || 5);
+                    if (decDiff !== 0) return decDiff;
+                    const retDiff = (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
+                    if (retDiff !== 0) return retDiff;
+                    return (b.oos_ic || 0) - (a.oos_ic || 0);
+                });
+
                 renderScreenerFullRows(allScreenerData);
 
                 if (allScreenerData.length > 0) {
