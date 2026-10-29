@@ -534,7 +534,18 @@ def get_stock_analysis(symbol: str, theme: str = "dark"):
     if df_raw is None or len(df_raw) < 100:
         raise HTTPException(status_code=400, detail="Insufficient stock data")
         
-    model_data, all_feature_cols = build_features(df_raw, a, b, c, d, investor_groups)
+    # Logic 4 nhom nha dau tu chi co du lieu day du <= 28/08/2026.
+    # Cat tap du lieu mo hinh luong hoa & OOS tai ngay 28/08/2026 de bao toan tinh chuan xac.
+    FLOW_CUTOFF_DATE = pd.to_datetime("2026-08-28")
+    if "time" in df_raw.columns:
+        df_model_raw = df_raw[pd.to_datetime(df_raw["time"], errors="coerce") <= FLOW_CUTOFF_DATE].copy()
+    else:
+        df_model_raw = df_raw.copy()
+
+    if df_model_raw.empty or len(df_model_raw) < 100:
+        df_model_raw = df_raw.copy()
+
+    model_data, all_feature_cols = build_features(df_model_raw, a, b, c, d, investor_groups)
     y_col = "target_ret_t10"
     
     total_needed = LOOKBACK_DAYS + OOS_DAYS
@@ -568,7 +579,7 @@ def get_stock_analysis(symbol: str, theme: str = "dark"):
     oos_data["decile"] = (pd.cut(oos_data["pred_score"], bins=train_bin_edges, labels=False, include_lowest=True).astype(int) + 1)
 
     if "time" in df_raw.columns:
-        oos_data["date_str"] = pd.to_datetime(df_raw.loc[oos_data.index, "time"]).dt.strftime('%d/%m/%Y')
+        oos_data["date_str"] = pd.to_datetime(df_model_raw.loc[oos_data.index, "time"]).dt.strftime('%d/%m/%Y')
     else:
         oos_data["date_str"] = [str(i) for i in oos_data.index]
 
