@@ -12,6 +12,18 @@ jobs:
   ping-render:
     runs-on: ubuntu-latest
     steps:
+      - name: Trigger Render Deploy on Push
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
+            echo "Triggering Render deploy via secret hook..."
+            curl -s -X POST "$RENDER_DEPLOY_HOOK"
+          else
+            echo "No RENDER_DEPLOY_HOOK secret configured."
+          fi
+
       - name: Ping Render Backend
         run: |
           echo "Sending keep-alive ping to Render service..."
