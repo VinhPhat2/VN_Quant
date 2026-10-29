@@ -159,22 +159,32 @@ class KafiDownloader:
         df = df.dropna(subset=["_dt"]).sort_values(by="_dt", ascending=False)
         df = df.drop_duplicates(subset=["_dt"])
 
+        cutoff_date = pd.to_datetime("2026-08-28")
         rows = []
         for _, row in df.iterrows():
-            kl_ca_nhan = _get_val(row, "retailNetVolume", "localIndividualNetVolume") or (
-                _get_val(row, "localIndividualBuyMatchVolume") - _get_val(row, "localIndividualSellMatchVolume")
-            )
-            gt_ca_nhan = _get_val(row, "retailNetValue", "localIndividualNetValue") or (
-                _get_val(row, "localIndividualBuyMatchValue") - _get_val(row, "localIndividualSellMatchValue")
-            )
+            is_after_cutoff = row["_dt"] > cutoff_date
 
-            kl_to_chuc = _get_val(row, "institutionNetVolume", "localInstitutionalNetVolume") or (
-                _get_val(row, "localInstitutionalBuyMatchVolume") - _get_val(row, "localInstitutionalSellMatchVolume")
-            )
-            gt_to_chuc = _get_val(row, "institutionNetValue", "localInstitutionalNetValue") or (
-                _get_val(row, "localInstitutionalBuyMatchValue") - _get_val(row, "localInstitutionalSellMatchValue")
-            )
+            if is_after_cutoff:
+                # Sau 28/08/2026: Kafi không còn phân loại cá nhân & tổ chức trong nước -> để trống (None)
+                kl_ca_nhan = None
+                gt_ca_nhan = None
+                kl_to_chuc = None
+                gt_to_chuc = None
+            else:
+                kl_ca_nhan = _get_val(row, "retailNetVolume", "localIndividualNetVolume") or (
+                    _get_val(row, "localIndividualBuyMatchVolume") - _get_val(row, "localIndividualSellMatchVolume")
+                )
+                gt_ca_nhan = _get_val(row, "retailNetValue", "localIndividualNetValue") or (
+                    _get_val(row, "localIndividualBuyMatchValue") - _get_val(row, "localIndividualSellMatchValue")
+                )
+                kl_to_chuc = _get_val(row, "institutionNetVolume", "localInstitutionalNetVolume") or (
+                    _get_val(row, "localInstitutionalBuyMatchVolume") - _get_val(row, "localInstitutionalSellMatchVolume")
+                )
+                gt_to_chuc = _get_val(row, "institutionNetValue", "localInstitutionalNetValue") or (
+                    _get_val(row, "localInstitutionalBuyMatchValue") - _get_val(row, "localInstitutionalSellMatchValue")
+                )
 
+            # Tự doanh: lấy từ Kafi (khớp ròng hoặc mua - bán)
             kl_tu_doanh = _get_val(row, "proprietaryNetVolume", "netProprietaryMatchVolume") or (
                 _get_val(row, "proprietaryTotalMatchBuyTradeVolume") - _get_val(row, "proprietaryTotalMatchSellTradeVolume")
             )
@@ -182,19 +192,13 @@ class KafiDownloader:
                 _get_val(row, "proprietaryTotalMatchBuyTradeValue") - _get_val(row, "proprietaryTotalMatchSellTradeValue")
             )
 
+            # Nước ngoài: lấy từ Kafi (khớp ròng hoặc mua - bán)
             kl_nuoc_ngoai = _get_val(row, "foreignNetVolume", "foreignNetVolumeMatched") or (
                 _get_val(row, "foreignBuyVolumeMatched") - _get_val(row, "foreignSellVolumeMatched")
             )
             gt_nuoc_ngoai = _get_val(row, "foreignNetValue", "foreignNetValueMatched") or (
                 _get_val(row, "foreignBuyValueMatched") - _get_val(row, "foreignSellValueMatched")
             )
-
-            # Nếu Kafi chưa kịp bóc tách Cá nhân & Tổ chức nội (vẫn là 0/NaN):
-            # Quy luật khớp lệnh sàn HOSE: Tổng dòng tiền luôn cân bằng về 0:
-            # (Ngoại + Tự Doanh + Trong Nước = 0) -> Dòng tiền Trong Nước (Cá nhân) = -(Ngoại + Tự Doanh)
-            if gt_ca_nhan == 0 and gt_to_chuc == 0 and (gt_nuoc_ngoai != 0 or gt_tu_doanh != 0):
-                gt_ca_nhan = -(gt_nuoc_ngoai + gt_tu_doanh)
-                kl_ca_nhan = -(kl_nuoc_ngoai + kl_tu_doanh)
 
             gia_dieu_chinh = _get_val(row, "closeValue", "closePrice", "ClosePrice")
             gia_tho = _get_val(row, "referencePrice", "close_raw", "rawClose", "unadjustedClose", default=gia_dieu_chinh)
@@ -235,19 +239,22 @@ class KafiDownloader:
         csv_path = os.path.join(output_dir, f"{prefix}.csv")
 
         existing_df = pd.DataFrame(columns=TARGET_COLUMNS)
-        existing_dates = set()
+        cutoff_date = pd.to_datetime("2026-08-28")
 
         if os.path.exists(csv_path) and not force_refetch:
             try:
                 existing_df = pd.read_csv(csv_path, encoding="utf-8-sig")
                 if not existing_df.empty and "NGÀY" in existing_df.columns:
-                    d_conv = pd.to_datetime(existing_df["NGÀY"], errors="coerce", dayfirst=True)
-                    existing_dates = set(d_conv.dt.strftime("%Y-%m-%d").dropna())
+                    existing_df["_dt_chk"] = pd.to_datetime(existing_df["NGÀY"], errors="coerce", dayfirst=True)
+                    if not is_index:
+                        # Bảo toàn dữ liệu 4 nhóm nhà đầu tư chuẩn <= 28/08/2026,
+                        # Xóa bỏ các dòng tự tính toán / tự trừ trong tháng 9
+                        existing_df = existing_df[existing_df["_dt_chk"] <= cutoff_date].copy()
+                    existing_df.drop(columns=["_dt_chk"], inplace=True, errors="ignore")
             except Exception:
                 pass
 
-        bars_to_fetch = 300 if existing_dates else total_bars
-
+        bars_to_fetch = 300
         t0 = time.time()
         raw_df = self.fetch_raw(symbol, total_bars=bars_to_fetch)
         fetch_time = time.time() - t0
@@ -257,14 +264,11 @@ class KafiDownloader:
             return
 
         std_df = self.transform(raw_df)
-        
+
         if force_refetch or existing_df.empty:
             final_df = std_df
-            print(f"🔥 [{symbol}] Tải mới toàn bộ {len(final_df)} phiên ({fetch_time:.2f}s) có đầy đủ dòng tiền.", flush=True)
+            print(f"🔥 [{symbol}] Tải mới toàn bộ {len(final_df)} phiên ({fetch_time:.2f}s).", flush=True)
         else:
-            # =========================================================================
-            # KIỂM TRA BẤT THƯỜNG DO CHIA CỔ TỨC / PHÁT HÀNH THÊM (CORPORATE ACTIONS)
-            # =========================================================================
             has_dividend_split = False
             
             # 1. Kiểm tra cờ quyền split / benefit trong raw Kafi
@@ -272,63 +276,64 @@ class KafiDownloader:
                 for col in ["split", "benefit"]:
                     if col in raw_df.columns:
                         non_empty = raw_df[col].dropna()
-                        if not non_empty.empty and any(str(x).strip() not in ("", "None", "nan", "0") for x in non_empty.head(10)):
+                        if not non_empty.empty and any(str(x).strip() not in ("", "None", "nan", "0") for x in non_empty.head(25)):
                             has_dividend_split = True
                             print(f"⚡ [{symbol}] Kafi báo cờ sự kiện quyền ({col}): {non_empty.iloc[0]}", flush=True)
                             break
 
-            # 2. Kiểm tra lệch giá tham chiếu phiên mới so với giá đóng cửa phiên trước (reprice)
-            if not has_dividend_split and not is_index and len(raw_df) >= 2:
-                if "referencePrice" in raw_df.columns and "closePrice" in raw_df.columns:
-                    ref_p = float(raw_df["referencePrice"].iloc[0] or 0)
-                    prev_close = float(raw_df["closePrice"].iloc[1] or 0)
-                    if ref_p > 0 and prev_close > 0 and abs(ref_p - prev_close) > 100:
-                        has_dividend_split = True
-                        print(f"⚡ [{symbol}] Phát hiện re-price bất thường: Tham chiếu={ref_p:,.0f} vs Đóng cửa cũ={prev_close:,.0f}", flush=True)
-
-            # 3. Kiểm tra hồi tố giá đóng cửa cũ trong file CSV vs giá điều chỉnh mới từ Kafi
+            # 2. Kiểm tra lệch giá hồi tố do chia cổ tức trên TOÀN BỘ các phiên trùng lặp (trước và sau 28/08)
             if not has_dividend_split and not is_index and not existing_df.empty:
-                common_dates = set(existing_df["NGÀY"]).intersection(set(std_df["NGÀY"]))
-                if common_dates:
-                    try:
-                        latest_common = sorted(list(common_dates), key=lambda x: pd.to_datetime(x, format="%d/%m/%Y", errors="coerce"))[-1]
-                        old_close = float(existing_df.loc[existing_df["NGÀY"] == latest_common, "GIÁ"].iloc[0] or 0)
-                        new_close = float(std_df.loc[std_df["NGÀY"] == latest_common, "GIÁ"].iloc[0] or 0)
-                        if old_close > 0 and new_close > 0 and abs(old_close - new_close) / old_close > 0.005:
+                try:
+                    chk_old = existing_df[["NGÀY", "GIÁ"]].dropna().copy()
+                    chk_new = std_df[["NGÀY", "GIÁ"]].dropna().copy()
+                    merged_chk = pd.merge(chk_old, chk_new, on="NGÀY", suffixes=("_old", "_new"))
+                    
+                    if not merged_chk.empty:
+                        # Tính độ lệch tương đối giữa giá điều chỉnh cũ trong file và giá mới từ Kafi
+                        merged_chk["diff"] = (merged_chk["GIÁ_old"] - merged_chk["GIÁ_new"]).abs() / merged_chk["GIÁ_old"].replace(0, float("nan"))
+                        mismatches = merged_chk[merged_chk["diff"] > 0.005]  # Lệch > 0.5%
+                        
+                        if not mismatches.empty:
                             has_dividend_split = True
-                            print(f"⚡ [{symbol}] Phát hiện Kafi điều chỉnh hồi tố giá do chia cổ tức tại {latest_common}: Cũ={old_close:,.0f} -> Mới={new_close:,.0f}", flush=True)
-                    except Exception:
-                        pass
+                            sample = mismatches.iloc[0]
+                            print(f"⚡ [{symbol}] Phát hiện chia cổ tức / chia tách giá lịch sử (lệch tại phiên {sample['NGÀY']} và {len(mismatches)}/{len(merged_chk)} phiên trước/sau 28/08): Cũ={sample['GIÁ_old']:,.0f} -> Mới={sample['GIÁ_new']:,.0f} (lệch {sample['diff']*100:.1f}%)", flush=True)
+                except Exception:
+                    pass
 
-            # Nếu phát hiện chia cổ tức / chia tách: Tải lại toàn bộ 1800 phiên để cập nhật đồng bộ toàn bộ chuỗi giá điều chỉnh
             if has_dividend_split:
-                print(f"🔄 [{symbol}] TỰ ĐỘNG ĐIỀU CHỈNH GIÁ: Tải lại toàn bộ lịch sử 1.800 phiên để đồng bộ giá điều chỉnh...", flush=True)
+                print(f"🔄 [{symbol}] TỰ ĐỘNG ĐIỀU CHỈNH GIÁ: Tải lại 1.800 phiên lịch sử để cập nhật chuỗi giá chia cổ tức...", flush=True)
                 raw_df_full = self.fetch_raw(symbol, total_bars=1800)
                 if not raw_df_full.empty:
-                    final_df = self.transform(raw_df_full)
-                    print(f"✅ [{symbol}] Đã cập nhật lại toàn bộ chuỗi giá điều chỉnh cổ tức ({len(final_df)} phiên).", flush=True)
+                    std_full = self.transform(raw_df_full)
+                    # Giữ nguyên dòng tiền 4 nhóm nhà đầu tư cũ <= 28/08/2026, cập nhật giá mới
+                    flow_cols = [
+                        "KL Cá Nhân Khớp Ròng", "GT Cá Nhân Khớp Ròng", "KL Tổ chức Khớp Ròng", "GT Tổ chức Khớp Ròng",
+                        "KL Tự doanh Khớp Ròng", "GT Tự doanh Khớp Ròng", "KL Nước Ngoài Khớp Ròng", "GT Nước Ngoài Khớp Ròng"
+                    ]
+                    old_map = existing_df.set_index("NGÀY")
+                    for col in flow_cols:
+                        if col in old_map.columns:
+                            s_old = std_full["NGÀY"].map(old_map[col])
+                            mask_has_old = s_old.notna()
+                            std_full.loc[mask_has_old, col] = s_old[mask_has_old]
+                    final_df = std_full
+                    print(f"✅ [{symbol}] Đã cập nhật chuỗi giá chia cổ tức, bảo toàn dòng tiền lịch sử ({len(final_df)} phiên).", flush=True)
                 else:
                     final_df = std_df
             else:
-                std_df["_check_date"] = pd.to_datetime(std_df["NGÀY"], format="%d/%m/%Y", errors="coerce").dt.strftime("%Y-%m-%d")
-                
-                # Cập nhật đè nếu file cũ bị dính phiên có dòng tiền = 0
-                if not is_index and not existing_df.empty:
-                    old_incomplete = (existing_df["GT Cá Nhân Khớp Ròng"] == 0) & (existing_df["GT Tổ chức Khớp Ròng"] == 0)
-                    if old_incomplete.any():
-                        existing_df = existing_df[~old_incomplete].copy()
-                        d_conv = pd.to_datetime(existing_df["NGÀY"], errors="coerce", dayfirst=True)
-                        existing_dates = set(d_conv.dt.strftime("%Y-%m-%d").dropna())
+                if is_index:
+                    existing_dates = set(pd.to_datetime(existing_df["NGÀY"], format="%d/%m/%Y", errors="coerce").dt.strftime("%d/%m/%Y").dropna())
+                    new_rows = std_df[~std_df["NGÀY"].isin(existing_dates)].copy()
+                else:
+                    std_df["_dt_chk"] = pd.to_datetime(std_df["NGÀY"], format="%d/%m/%Y", errors="coerce")
+                    new_rows = std_df[std_df["_dt_chk"] > cutoff_date].copy()
+                    new_rows.drop(columns=["_dt_chk"], inplace=True)
 
-                new_rows = std_df[~std_df["_check_date"].isin(existing_dates)].copy()
-                new_rows.drop(columns=["_check_date"], inplace=True)
-                std_df.drop(columns=["_check_date"], inplace=True)
-
-                if new_rows.empty:
+                if new_rows.empty and not existing_df.empty:
                     print(f"ℹ️ [{symbol}] Đã ở trạng thái mới nhất ({fetch_time:.2f}s).", flush=True)
                     return
 
-                print(f"🔥 [{symbol}] Tải {len(std_df)} phiên ({fetch_time:.2f}s) -> Thêm mới {len(new_rows)} phiên chuẩn dòng tiền.", flush=True)
+                print(f"🔥 [{symbol}] Tải {len(std_df)} phiên ({fetch_time:.2f}s) -> Thêm mới {len(new_rows)} phiên chuẩn tới ngày hiện tại.", flush=True)
                 final_df = pd.concat([new_rows, existing_df], ignore_index=True)
 
         final_df = final_df.reindex(columns=TARGET_COLUMNS)

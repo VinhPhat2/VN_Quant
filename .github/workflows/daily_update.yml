@@ -24,21 +24,25 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --no-cache-dir requests pandas
+          pip install --no-cache-dir -r requirements.txt
 
       - name: Run Kafi Downloader (Update 387 stocks EOD + Dividend Adjustment Check)
         run: |
           python kafi_downloader.py
 
+      - name: Recompute Market Deciles & Flow Alpha Cache
+        run: |
+          python update_deciles_cache.py
+
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add csv_data/ fiintrade_master_map.json
+          git add csv_data/ fiintrade_master_map.json latest_deciles_cache.csv
           if git diff --staged --quiet; then
             echo 'No new data today or flow data pending'
           else
-            git commit -m 'Auto-update daily stock data & dividend adjusted prices'
+            git commit -m 'Auto-update daily stock data, dividend adjustments & deciles cache'
             git push
           fi
 

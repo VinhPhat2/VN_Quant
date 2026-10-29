@@ -641,13 +641,18 @@ def get_stock_analysis(symbol: str, theme: str = "dark"):
     for idx, r in df_tail_flow.iterrows():
         t_val = r["time"]
         t_str = pd.to_datetime(t_val).strftime("%d/%m/%Y") if pd.notnull(t_val) else str(idx)
+        f_val = r.get("foreign_net_val")
+        p_val = r.get("prop_net_val")
+        inst_val = r.get("local_inst_net_val")
+        ind_val = r.get("local_ind_net_val")
+        c_val = r.get("close", 0)
         flow_series.append({
             "time": t_str,
-            "foreign": float(r.get("foreign_net_val", 0)) / 1e9,
-            "prop": float(r.get("prop_net_val", 0)) / 1e9,
-            "local_inst": float(r.get("local_inst_net_val", 0)) / 1e9,
-            "local_ind": float(r.get("local_ind_net_val", 0)) / 1e9,
-            "close": float(r.get("close", 0)),
+            "foreign": round(float(f_val) / 1e9, 3) if pd.notna(f_val) else 0.0,
+            "prop": round(float(p_val) / 1e9, 3) if pd.notna(p_val) else 0.0,
+            "local_inst": round(float(inst_val) / 1e9, 3) if pd.notna(inst_val) else None,
+            "local_ind": round(float(ind_val) / 1e9, 3) if pd.notna(ind_val) else None,
+            "close": float(c_val) if pd.notna(c_val) else 0.0,
         })
 
     latest_decile = int(oos_data["decile"].iloc[-1])
@@ -1636,10 +1641,20 @@ def index_page():
             let cumF = 0, cumP = 0, cumInst = 0, cumInd = 0;
             const seriesF = [], seriesP = [], seriesInst = [], seriesInd = [];
             flowData.forEach(x => {
-                cumF += x.foreign; seriesF.push(cumF);
-                cumP += x.prop; seriesP.push(cumP);
-                cumInst += x.local_inst; seriesInst.push(cumInst);
-                cumInd += x.local_ind; seriesInd.push(cumInd);
+                cumF += (x.foreign || 0); seriesF.push(Math.round(cumF * 100) / 100);
+                cumP += (x.prop || 0); seriesP.push(Math.round(cumP * 100) / 100);
+                if (x.local_inst !== null && x.local_inst !== undefined && !isNaN(x.local_inst)) {
+                    cumInst += x.local_inst;
+                    seriesInst.push(Math.round(cumInst * 100) / 100);
+                } else {
+                    seriesInst.push(null);
+                }
+                if (x.local_ind !== null && x.local_ind !== undefined && !isNaN(x.local_ind)) {
+                    cumInd += x.local_ind;
+                    seriesInd.push(Math.round(cumInd * 100) / 100);
+                } else {
+                    seriesInd.push(null);
+                }
             });
 
             const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
@@ -1650,10 +1665,10 @@ def index_page():
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'Khối Ngoại', data: seriesF, borderColor: '#00E5FF', borderWidth: 2.2, tension: 0.2, pointRadius: 0 },
-                        { label: 'Tự Doanh', data: seriesP, borderColor: '#10B981', borderWidth: 2.2, tension: 0.2, pointRadius: 0 },
-                        { label: 'Tổ Chức Nội', data: seriesInst, borderColor: '#A855F7', borderWidth: 2.2, tension: 0.2, pointRadius: 0 },
-                        { label: 'Cá Nhân Nội', data: seriesInd, borderColor: '#F59E0B', borderWidth: 2.2, tension: 0.2, pointRadius: 0 },
+                        { label: 'Khối Ngoại', data: seriesF, borderColor: '#00E5FF', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: true },
+                        { label: 'Tự Doanh', data: seriesP, borderColor: '#10B981', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: true },
+                        { label: 'Tổ Chức Nội (<=28/08)', data: seriesInst, borderColor: '#A855F7', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: false },
+                        { label: 'Cá Nhân Nội (<=28/08)', data: seriesInd, borderColor: '#F59E0B', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: false },
                     ]
                 },
                 options: {

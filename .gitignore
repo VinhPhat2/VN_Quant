@@ -7,3 +7,8 @@ __pycache__/
 code.txt
 test_kafi_runner.py
 test_callapy.ipynb
+*.zip
+*.xlsx
+bctc_hose/
+processed/
+stage1_cleanup.py
