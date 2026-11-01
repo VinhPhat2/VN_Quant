@@ -818,13 +818,13 @@ def index_page():
 
     <!-- Navigation Tabs Bar -->
     <nav class="bg-slate-50 dark:bg-slate-900/90 border-b border-brand-borderLight dark:border-brand-borderDark px-6 flex space-x-7 text-sm font-medium overflow-x-auto">
-        <button onclick="switchTab('tab-charts')" id="btn-tab-charts" class="tab-btn active py-3.5 text-slate-600 dark:text-slate-300 hover:text-emerald-500 whitespace-nowrap transition">Lượng Hóa Decile (Jupyter)</button>
-        <button onclick="switchTab('tab-technical')" id="btn-tab-technical" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Phân Tích Kỹ Thuật (RSI, MACD & Stoch)</button>
-        <button onclick="switchTab('tab-stoch-screener')" id="btn-tab-stoch-screener" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition flex items-center space-x-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>Xếp Hạng & Bắn Tín Hiệu Stochastic</span></button>
+        <button onclick="switchTab('tab-charts')" id="btn-tab-charts" class="tab-btn active py-3.5 text-slate-600 dark:text-slate-300 hover:text-emerald-500 whitespace-nowrap transition">Lượng Hóa Decile</button>
+        <button onclick="switchTab('tab-technical')" id="btn-tab-technical" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Phân Tích Kỹ Thuật</button>
+        <button onclick="switchTab('tab-stoch-screener')" id="btn-tab-stoch-screener" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition flex items-center space-x-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>Xếp Hạng Stochastic</span></button>
         <button onclick="switchTab('tab-flow')" id="btn-tab-flow" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Dòng Tiền 4 Nhóm NĐT</button>
         <button onclick="switchTab('tab-sectors')" id="btn-tab-sectors" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Sức Mạnh Nhóm Ngành</button>
         <button onclick="switchTab('tab-spikes')" id="btn-tab-spikes" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Bộ Lọc Dòng Tiền Đột Biến</button>
-        <button onclick="switchTab('tab-financials')" id="btn-tab-financials" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Báo Cáo Tài Chính (VCI)</button>
+        <button onclick="switchTab('tab-financials')" id="btn-tab-financials" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Báo Cáo Tài Chính</button>
         <button onclick="switchTab('tab-features')" id="btn-tab-features" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Bóc Tách Nhân Tố</button>
         <button onclick="switchTab('tab-audit')" id="btn-tab-audit" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Kiểm Định Mô Hình</button>
         <button onclick="switchTab('tab-sim')" id="btn-tab-sim" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Mô Phỏng Backtest</button>
@@ -886,8 +886,8 @@ def index_page():
                             <span class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">PHOENIX ENGINE</span>
                             <span class="text-xs text-slate-400 font-mono" id="stochUpdatedDate">Phiên giao dịch mới nhất</span>
                         </div>
-                        <h2 class="text-lg md:text-xl font-extrabold tracking-wide text-white mt-1">BỘ LỌC XẾP HẠNG & BẮN TÍN HIỆU STOCHASTIC REVERSION</h2>
-                        <p class="text-xs text-slate-400 mt-1 max-w-3xl">Thuật toán dò đáy Mean-Reversion theo Stochastic Oscillator (%K, %D), Williams %R kết hợp Price Action (Pinbar rút chân, Bullish Engulfing) & Quản trị rủi ro ATR Dynamic (TP +1.6 ATR / SL -1.2 ATR, Tỉ lệ R:R = 1.33).</p>
+                        <h2 class="text-lg md:text-xl font-extrabold tracking-wide text-white mt-1">XẾP HẠNG & BẮN TÍN HIỆU THUẦN CHỈ BÁO STOCHASTIC</h2>
+                        <p class="text-xs text-slate-400 mt-1 max-w-3xl">Hệ thống xếp hạng (Ranking) toàn diện 400+ cổ phiếu HOSE thuần túy theo chỉ báo Stochastic Oscillator (%K=14, %D=3): Điểm giao cắt Golden Cross trong vùng quá bán (≤30), độ sâu quá bán (%K cực tiểu), phân kỳ và cảnh báo quá mua chốt lời.</p>
                     </div>
                     <div class="flex items-center space-x-3">
                         <button onclick="loadStochScreener(true)" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition shadow">
@@ -905,19 +905,19 @@ def index_page():
                         <div class="text-xs text-slate-400 mt-1 font-mono" id="stochMa20Pct">--% mã > MA20</div>
                     </div>
                     <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
-                        <div class="text-xs text-slate-400 uppercase font-mono">Tín Hiệu Mua Bắt Đáy</div>
+                        <div class="text-xs text-slate-400 uppercase font-mono">Tín Hiệu Mua Golden Cross</div>
                         <div class="text-2xl font-extrabold text-emerald-400 mt-1" id="stochBuyCount">--</div>
-                        <div class="text-xs text-slate-400 mt-1 font-mono">Cổ phiếu đạt chuẩn Form Mua</div>
+                        <div class="text-xs text-slate-400 mt-1 font-mono">K cắt lên D trong vùng quá bán (≤30)</div>
                     </div>
                     <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
                         <div class="text-xs text-slate-400 uppercase font-mono">Vùng Quá Bán (Stoch ≤ 20)</div>
                         <div class="text-2xl font-extrabold text-sky-400 mt-1" id="stochOversoldCount">--</div>
-                        <div class="text-xs text-slate-400 mt-1 font-mono">Cổ phiếu rớt vào vùng đáy</div>
+                        <div class="text-xs text-slate-400 mt-1 font-mono">Cổ phiếu chạm đáy ngắn hạn</div>
                     </div>
                     <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
                         <div class="text-xs text-slate-400 uppercase font-mono">Vùng Quá Mua (Stoch ≥ 80)</div>
                         <div class="text-2xl font-extrabold text-rose-400 mt-1" id="stochOverboughtCount">--</div>
-                        <div class="text-xs text-slate-400 mt-1 font-mono">Cảnh báo rủi ro chốt lời</div>
+                        <div class="text-xs text-slate-400 mt-1 font-mono">Cảnh báo áp lực chốt lời</div>
                     </div>
                 </div>
             </div>
@@ -927,14 +927,13 @@ def index_page():
                 <div class="flex justify-between items-center">
                     <div class="flex items-center space-x-2">
                         <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-slate-950 text-xs font-bold font-mono">⚡</span>
-                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-200 tracking-wider">PHOENIX SIGNAL BROADCAST | Tín Hiệu Bắt Đáy Mới Kích Hoạt</h3>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-200 tracking-wider">PHOENIX SIGNAL BROADCAST | Điểm Nổ Tín Hiệu Stochastic Mới Nhất</h3>
                     </div>
-                    <span class="text-xs text-slate-500 font-mono">Bắn tín hiệu tự động theo ATR & Stochastic</span>
+                    <span class="text-xs text-slate-500 font-mono">Xếp hạng theo độ hội tụ giao cắt & quá bán</span>
                 </div>
                 
                 <div id="stochSignalFeed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Dynamic Signal Cards loaded via JS -->
-                    <div class="text-center py-8 text-slate-400 font-mono text-sm col-span-full">Đang quét tín hiệu thị trường...</div>
                 </div>
             </div>
 
@@ -942,8 +941,8 @@ def index_page():
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-wrap justify-between items-center gap-3">
                     <div>
-                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-200 tracking-wider">BẢNG XẾP HẠNG TÍN HIỆU STOCHASTIC TOÀN THỊ TRƯỜNG</h3>
-                        <p class="text-xs text-slate-500 font-mono mt-0.5">Xếp hạng theo độ hội tụ tín hiệu bắt đáy, thanh khoản và mẫu hình nến đảo chiều</p>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-200 tracking-wider">BẢNG XẾP HẠNG CHỈ BÁO STOCHASTIC TOÀN BỘ CỔ PHIẾU HOSE</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">Sắp xếp theo thứ hạng (Rank #1, #2...): Ưu tiên tín hiệu Mua Golden Cross & độ sâu quá bán Stoch %K</p>
                     </div>
 
                     <!-- Filter Controls -->
@@ -953,7 +952,7 @@ def index_page():
                         </div>
                         <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-mono">
                             <button onclick="setStochFilter('all')" id="btnStochAll" class="stoch-filter-btn px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/50">Tất Cả</button>
-                            <button onclick="setStochFilter('buy')" id="btnStochBuy" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">🔥 Bắt Đáy</button>
+                            <button onclick="setStochFilter('buy')" id="btnStochBuy" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">🔥 Mua Golden Cross</button>
                             <button onclick="setStochFilter('oversold')" id="btnStochOversold" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">⚡ Quá Bán (≤20)</button>
                             <button onclick="setStochFilter('bullish')" id="btnStochBullish" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">🚀 Tăng</button>
                             <button onclick="setStochFilter('overbought')" id="btnStochOverbought" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">⚠️ Quá Mua (≥80)</button>
@@ -975,11 +974,11 @@ def index_page():
                                 <th class="p-3 text-right">GTGD (Tỷ)</th>
                                 <th class="p-3 text-center">Stoch %K</th>
                                 <th class="p-3 text-center">Stoch %D</th>
-                                <th class="p-3 text-center">RSI (14)</th>
-                                <th class="p-3">Mẫu Hình Nến</th>
-                                <th class="p-3">Tín Hiệu Bot</th>
-                                <th class="p-3 text-right">Mục Tiêu (TP)</th>
-                                <th class="p-3 text-right">Cắt Lỗ (SL)</th>
+                                <th class="p-3 text-center">Chênh Lệch (K - D)</th>
+                                <th class="p-3">Tín Hiệu Stochastic</th>
+                                <th class="p-3">Chi Tiết Trạng Thái</th>
+                                <th class="p-3 text-right">Mục Tiêu TP</th>
+                                <th class="p-3 text-right">Cắt Lỗ SL</th>
                                 <th class="p-3 text-center">Thao Tác</th>
                             </tr>
                         </thead>
@@ -992,8 +991,6 @@ def index_page():
                 </div>
             </div>
         </div>
-
-
         <!-- TAB 3: INVESTOR FLOW BREAKDOWN -->
         <div id="tab-flow" class="tab-content hidden space-y-6">
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-5 shadow-sm">
@@ -1355,6 +1352,8 @@ def index_page():
                 renderStochUI();
             } catch (err) {
                 console.error("Error loading stochastic screener:", err);
+                const feed = document.getElementById('stochSignalFeed');
+                if (feed) feed.innerHTML = '<div class="text-center py-8 text-rose-400 font-mono text-sm col-span-full">Lỗi kết nối bộ lọc Stochastic. Vui lòng bấm Làm Mới Quét.</div>';
             }
         }
 
@@ -1382,16 +1381,17 @@ def index_page():
                 document.getElementById('stochOverboughtCount').innerText = mb.overbought_count || 0;
             }
 
-            // Render Signal Feed Cards (Top BUY signals)
+            // Render Signal Feed Cards (Top Golden Cross / Oversold signals)
             const feed = document.getElementById('stochSignalFeed');
             if (feed) {
-                const buyStocks = (stochScreenerData.stocks || []).filter(s => s.signal_type === 'BUY_STRONG' || s.signal_type === 'BUY');
-                if (buyStocks.length === 0) {
-                    feed.innerHTML = '<div class="text-center py-8 text-slate-400 font-mono text-sm col-span-full">Hôm nay không có mã nào kích hoạt điểm mua quá bán đạt chuẩn. Thị trường đang trong pha giằng co hoặc tích lũy.</div>';
+                const candidates = (stochScreenerData.stocks || []).filter(s => s.signal_type === 'BUY_GOLDEN' || (s.signal_type === 'OVERSOLD' && s.stoch_k <= 15));
+                if (candidates.length === 0) {
+                    feed.innerHTML = '<div class="text-center py-8 text-slate-400 font-mono text-sm col-span-full">Hôm nay không có mã nào xuất hiện Golden Cross trong vùng quá bán sâu. Thị trường đang trong pha giằng co hoặc tích lũy.</div>';
                 } else {
-                    feed.innerHTML = buyStocks.slice(0, 6).map(s => {
-                        const isStrong = s.signal_type === 'BUY_STRONG';
-                        const badgeColor = isStrong ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'bg-sky-500/20 text-sky-400 border-sky-500/50';
+                    feed.innerHTML = candidates.slice(0, 6).map(s => {
+                        const isGolden = s.signal_type === 'BUY_GOLDEN';
+                        const badgeColor = isGolden ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'bg-sky-500/20 text-sky-400 border-sky-500/50';
+                        const kVal = s.stoch_k;
                         return `
                             <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark hover:border-emerald-500/50 rounded-xl p-4 transition shadow-sm hover:shadow-md flex flex-col justify-between">
                                 <div>
@@ -1410,18 +1410,18 @@ def index_page():
                                     </div>
                                     
                                     <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs font-mono">
-                                        <div><span class="text-slate-400">Target TP:</span> <span class="font-bold text-emerald-400">${s.target.toLocaleString()}</span></div>
-                                        <div><span class="text-slate-400">Cắt lỗ SL:</span> <span class="font-bold text-rose-400">${s.stop_loss.toLocaleString()}</span></div>
-                                        <div><span class="text-slate-400">Stoch %K/%D:</span> <span class="font-bold text-sky-400">${s.stoch_k} / ${s.stoch_d}</span></div>
-                                        <div><span class="text-slate-400">RSI(14):</span> <span class="font-bold text-amber-400">${s.rsi}</span></div>
+                                        <div><span class="text-slate-400">Stoch %K:</span> <span class="font-extrabold text-emerald-400">${s.stoch_k}</span></div>
+                                        <div><span class="text-slate-400">Stoch %D:</span> <span class="font-bold text-amber-400">${s.stoch_d}</span></div>
+                                        <div><span class="text-slate-400">Chênh lệch K-D:</span> <span class="font-bold ${s.k_diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${s.k_diff >= 0 ? '+' : ''}${s.k_diff}</span></div>
+                                        <div><span class="text-slate-400">GTGD:</span> <span class="font-bold text-slate-200">${s.turnover_ty} Tỷ</span></div>
                                     </div>
                                     <div class="mt-2 text-[11px] font-mono text-slate-400">
-                                        Nến: <span class="text-slate-200 font-bold">${s.pattern}</span> | GTGD: <span class="text-slate-200 font-bold">${s.turnover_ty} Tỷ</span>
+                                        Trạng thái: <span class="text-emerald-300 font-semibold">${s.status_desc}</span>
                                     </div>
                                 </div>
                                 <div class="mt-4 pt-2">
                                     <button onclick="quickSelectStock('${s.symbol}')" class="w-full py-1.5 text-xs font-bold font-mono rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/40 transition">
-                                        Xem Phân Tích Kỹ Thuật Mã ${s.symbol} →
+                                        Xem Biểu Đồ Kỹ Thuật Mã ${s.symbol} →
                                     </button>
                                 </div>
                             </div>
@@ -1460,7 +1460,7 @@ def index_page():
             let items = [...stochScreenerData.stocks];
 
             if (currentStochFilter === 'buy') {
-                items = items.filter(s => s.signal_type === 'BUY_STRONG' || s.signal_type === 'BUY');
+                items = items.filter(s => s.signal_type === 'BUY_GOLDEN');
             } else if (currentStochFilter === 'oversold') {
                 items = items.filter(s => s.stoch_k <= 20);
             } else if (currentStochFilter === 'bullish') {
@@ -1485,38 +1485,34 @@ def index_page():
 
             tbody.innerHTML = items.map(s => {
                 let badgeClass = 'bg-slate-800 text-slate-400 border-slate-700';
-                if (s.signal_type === 'BUY_STRONG') badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 font-bold';
-                else if (s.signal_type === 'BUY') badgeClass = 'bg-teal-500/20 text-teal-400 border-teal-500/40 font-bold';
-                else if (s.signal_type === 'WATCH_OVERSOLD') badgeClass = 'bg-sky-500/20 text-sky-400 border-sky-500/40';
+                if (s.signal_type === 'BUY_GOLDEN') badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 font-bold';
+                else if (s.signal_type === 'OVERSOLD') badgeClass = 'bg-sky-500/20 text-sky-400 border-sky-500/40 font-bold';
                 else if (s.signal_type === 'BULLISH') badgeClass = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
-                else if (s.signal_type === 'OVERBOUGHT') badgeClass = 'bg-rose-500/20 text-rose-400 border-rose-500/40';
-                else if (s.signal_type === 'SELL') badgeClass = 'bg-red-500/20 text-red-400 border-red-500/50 font-bold';
+                else if (s.signal_type === 'OVERBOUGHT') badgeClass = 'bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold';
+                else if (s.signal_type === 'SELL_DEATH' || s.signal_type === 'SELL') badgeClass = 'bg-red-500/20 text-red-400 border-red-500/50 font-bold';
 
-                // Stoch %K progress bar style
                 const kVal = Math.min(Math.max(s.stoch_k, 0), 100);
-                let barColor = 'bg-slate-400';
-                if (kVal <= 20) barColor = 'bg-emerald-400';
-                else if (kVal >= 80) barColor = 'bg-rose-400';
-                else barColor = 'bg-sky-400';
 
                 return `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer" onclick="quickSelectStock('${s.symbol}')">
                         <td class="p-3 text-center font-bold text-slate-400">${s.rank}</td>
                         <td class="p-3 font-extrabold text-slate-900 dark:text-white hover:text-emerald-400 flex items-center space-x-1.5">
                             <span>${s.symbol}</span>
-                            ${s.signal_type === 'BUY_STRONG' ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>' : ''}
+                            ${s.signal_type === 'BUY_GOLDEN' ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>' : ''}
                         </td>
                         <td class="p-3 text-slate-400 whitespace-nowrap">${s.sector}</td>
                         <td class="p-3 text-right font-extrabold text-slate-800 dark:text-slate-200">${s.price.toLocaleString()}</td>
                         <td class="p-3 text-right font-bold ${s.change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%</td>
                         <td class="p-3 text-right text-slate-300">${s.turnover_ty}</td>
                         <td class="p-3 text-center">
-                            <span class="font-bold ${kVal <= 20 ? 'text-emerald-400' : (kVal >= 80 ? 'text-rose-400' : 'text-sky-400')}">${s.stoch_k}</span>
+                            <span class="font-extrabold ${kVal <= 20 ? 'text-emerald-400' : (kVal >= 80 ? 'text-rose-400' : 'text-sky-400')}">${s.stoch_k}</span>
                         </td>
-                        <td class="p-3 text-center text-slate-400">${s.stoch_d}</td>
-                        <td class="p-3 text-center font-bold text-amber-400">${s.rsi}</td>
-                        <td class="p-3 whitespace-nowrap text-slate-300">${s.pattern}</td>
+                        <td class="p-3 text-center text-slate-400 font-mono">${s.stoch_d}</td>
+                        <td class="p-3 text-center font-bold font-mono ${s.k_diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${s.k_diff >= 0 ? '+' : ''}${s.k_diff}
+                        </td>
                         <td class="p-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-[11px] border ${badgeClass}">${s.signal}</span></td>
+                        <td class="p-3 whitespace-nowrap text-slate-400 text-[11px]">${s.status_desc}</td>
                         <td class="p-3 text-right text-emerald-400 font-bold">${s.target.toLocaleString()}</td>
                         <td class="p-3 text-right text-rose-400 font-bold">${s.stop_loss.toLocaleString()}</td>
                         <td class="p-3 text-center">
@@ -1534,7 +1530,7 @@ def index_page():
             switchTab('tab-technical');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
+        
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
