@@ -34,15 +34,19 @@ jobs:
         run: |
           python update_deciles_cache.py
 
+      - name: Recompute Stochastic Screener & Signals Cache
+        run: |
+          python stoch_screener.py
+
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add csv_data/ fiintrade_master_map.json latest_deciles_cache.csv
+          git add csv_data/ fiintrade_master_map.json latest_deciles_cache.csv stoch_signals_cache.json
           if git diff --staged --quiet; then
             echo 'No new data today or flow data pending'
           else
-            git commit -m 'Auto-update daily stock data, dividend adjustments & deciles cache'
+            git commit -m 'Auto-update daily stock data, dividend adjustments & stoch signals'
             git push
           fi
 

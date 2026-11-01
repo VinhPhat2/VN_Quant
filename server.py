@@ -377,10 +377,22 @@ def make_technical_indicator_fig(df_tail, is_dark=True):
     bb_upper = (pd.Series(ma20) + 2 * bb_std).tolist()
     bb_lower = (pd.Series(ma20) - 2 * bb_std).tolist()
 
+    # Stochastic Oscillator (%K=14, %D=3)
+    low14 = pd.Series(lo).rolling(14).min()
+    high14 = pd.Series(hi).rolling(14).max()
+    fast_k = 100 * (pd.Series(cl) - low14) / (high14 - low14 + 1e-8)
+    stoch_k = fast_k.rolling(3).mean().fillna(50).tolist()
+    stoch_d = pd.Series(stoch_k).rolling(3).mean().fillna(50).tolist()
+
     fig = make_subplots(
-        rows=3, cols=1, shared_xaxes=True,
-        row_heights=[0.55, 0.22, 0.23], vertical_spacing=0.03,
-        subplot_titles=("Biểu Đồ Nến & Dải Bollinger Bands", "Chỉ Báo Sức Mạnh Giá RSI (14)", "Chỉ Báo MACD (12, 26, 9)")
+        rows=4, cols=1, shared_xaxes=True,
+        row_heights=[0.46, 0.18, 0.18, 0.18], vertical_spacing=0.03,
+        subplot_titles=(
+            "Biểu Đồ Nến & Dải Bollinger Bands",
+            "Chỉ Báo Sức Mạnh Giá RSI (14)",
+            "Chỉ Báo MACD (12, 26, 9)",
+            "Chỉ Báo Stochastic Oscillator (%K=14, %D=3)"
+        )
     )
 
     # Row 1: Candlestick + Bollinger Bands + MA20
@@ -399,8 +411,14 @@ def make_technical_indicator_fig(df_tail, is_dark=True):
     fig.add_trace(go.Scatter(x=dates, y=signal, line=dict(color="#F59E0B", width=1.5), name="Signal"), row=3, col=1)
     fig.add_trace(go.Bar(x=dates, y=hist, marker_color=["#00E676" if h >= 0 else "#FF334B" for h in hist], name="MACD Hist"), row=3, col=1)
 
+    # Row 4: Stochastic %K & %D
+    fig.add_trace(go.Scatter(x=dates, y=stoch_k, line=dict(color="#00E5FF", width=1.8), name="Stoch %K (14, 3)"), row=4, col=1)
+    fig.add_trace(go.Scatter(x=dates, y=stoch_d, line=dict(color="#F59E0B", width=1.5, dash="dot"), name="Stoch %D (3)"), row=4, col=1)
+    fig.add_hline(y=80, line_dash="dash", line_color="#FF334B", row=4, col=1)
+    fig.add_hline(y=20, line_dash="dash", line_color="#00E676", row=4, col=1)
+
     fig.update_layout(
-        height=660,
+        height=820,
         template="plotly_dark" if is_dark else "plotly_white",
         paper_bgcolor=p_bg,
         plot_bgcolor=p_plot_bg,
@@ -414,6 +432,18 @@ def make_technical_indicator_fig(df_tail, is_dark=True):
     return json.loads(pio.to_json(fig))
 
 _financial_cache = {}
+
+@app.get("/api/stoch-screener")
+def get_stoch_screener(refresh: bool = False):
+    cache_file = os.path.join(os.path.dirname(__file__), "stoch_signals_cache.json")
+    if not refresh and os.path.exists(cache_file):
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    from stoch_screener import compute_stoch_signals
+    return compute_stoch_signals(get_data_dir())
 
 @app.get("/api/financials/{symbol}")
 def get_vci_financial_data(symbol: str):
@@ -789,7 +819,8 @@ def index_page():
     <!-- Navigation Tabs Bar -->
     <nav class="bg-slate-50 dark:bg-slate-900/90 border-b border-brand-borderLight dark:border-brand-borderDark px-6 flex space-x-7 text-sm font-medium overflow-x-auto">
         <button onclick="switchTab('tab-charts')" id="btn-tab-charts" class="tab-btn active py-3.5 text-slate-600 dark:text-slate-300 hover:text-emerald-500 whitespace-nowrap transition">Lượng Hóa Decile (Jupyter)</button>
-        <button onclick="switchTab('tab-technical')" id="btn-tab-technical" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Phân Tích Kỹ Thuật (RSI & MACD)</button>
+        <button onclick="switchTab('tab-technical')" id="btn-tab-technical" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Phân Tích Kỹ Thuật (RSI, MACD & Stoch)</button>
+        <button onclick="switchTab('tab-stoch-screener')" id="btn-tab-stoch-screener" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition flex items-center space-x-1.5"><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>Xếp Hạng & Bắn Tín Hiệu Stochastic</span></button>
         <button onclick="switchTab('tab-flow')" id="btn-tab-flow" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Dòng Tiền 4 Nhóm NĐT</button>
         <button onclick="switchTab('tab-sectors')" id="btn-tab-sectors" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Sức Mạnh Nhóm Ngành</button>
         <button onclick="switchTab('tab-spikes')" id="btn-tab-spikes" class="tab-btn py-3.5 text-slate-500 dark:text-slate-400 hover:text-emerald-500 whitespace-nowrap transition">Bộ Lọc Dòng Tiền Đột Biến</button>
@@ -838,12 +869,130 @@ def index_page():
         <div id="tab-technical" class="tab-content hidden space-y-6">
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-5 shadow-sm">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Biểu Đồ Kỹ Thuật Đa Chỉ Báo (Nến OHLC, Bollinger Bands, RSI, MACD)</h3>
+                    <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Biểu Đồ Kỹ Thuật Đa Chỉ Báo (Nến OHLC, Bollinger Bands, RSI, MACD & Stochastic)</h3>
                     <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Khớp lệnh & chỉ báo kỹ thuật thực tế</span>
                 </div>
-                <div id="plotlyTechContainer" class="w-full min-h-[660px]"></div>
+                <div id="plotlyTechContainer" class="w-full min-h-[820px]"></div>
             </div>
         </div>
+
+                <!-- TAB 2.5: PHOENIX STOCHASTIC RANKING & SIGNAL BROADCAST -->
+        <div id="tab-stoch-screener" class="tab-content hidden space-y-6">
+            <!-- Header & Market Breadth -->
+            <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-emerald-500/30 rounded-xl p-6 shadow-lg text-white">
+                <div class="flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">PHOENIX ENGINE</span>
+                            <span class="text-xs text-slate-400 font-mono" id="stochUpdatedDate">Phiên giao dịch mới nhất</span>
+                        </div>
+                        <h2 class="text-lg md:text-xl font-extrabold tracking-wide text-white mt-1">BỘ LỌC XẾP HẠNG & BẮN TÍN HIỆU STOCHASTIC REVERSION</h2>
+                        <p class="text-xs text-slate-400 mt-1 max-w-3xl">Thuật toán dò đáy Mean-Reversion theo Stochastic Oscillator (%K, %D), Williams %R kết hợp Price Action (Pinbar rút chân, Bullish Engulfing) & Quản trị rủi ro ATR Dynamic (TP +1.6 ATR / SL -1.2 ATR, Tỉ lệ R:R = 1.33).</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="loadStochScreener(true)" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition shadow">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            <span>Làm Mới Quét</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Market Breadth Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
+                        <div class="text-xs text-slate-400 uppercase font-mono">Trạng Thái Thị Trường</div>
+                        <div class="text-sm font-bold text-emerald-400 mt-1" id="stochRegime">Đang tải...</div>
+                        <div class="text-xs text-slate-400 mt-1 font-mono" id="stochMa20Pct">--% mã > MA20</div>
+                    </div>
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
+                        <div class="text-xs text-slate-400 uppercase font-mono">Tín Hiệu Mua Bắt Đáy</div>
+                        <div class="text-2xl font-extrabold text-emerald-400 mt-1" id="stochBuyCount">--</div>
+                        <div class="text-xs text-slate-400 mt-1 font-mono">Cổ phiếu đạt chuẩn Form Mua</div>
+                    </div>
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
+                        <div class="text-xs text-slate-400 uppercase font-mono">Vùng Quá Bán (Stoch ≤ 20)</div>
+                        <div class="text-2xl font-extrabold text-sky-400 mt-1" id="stochOversoldCount">--</div>
+                        <div class="text-xs text-slate-400 mt-1 font-mono">Cổ phiếu rớt vào vùng đáy</div>
+                    </div>
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
+                        <div class="text-xs text-slate-400 uppercase font-mono">Vùng Quá Mua (Stoch ≥ 80)</div>
+                        <div class="text-2xl font-extrabold text-rose-400 mt-1" id="stochOverboughtCount">--</div>
+                        <div class="text-xs text-slate-400 mt-1 font-mono">Cảnh báo rủi ro chốt lời</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signal Broadcast Feed (Bot Style) -->
+            <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-6 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-slate-950 text-xs font-bold font-mono">⚡</span>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-200 tracking-wider">PHOENIX SIGNAL BROADCAST | Tín Hiệu Bắt Đáy Mới Kích Hoạt</h3>
+                    </div>
+                    <span class="text-xs text-slate-500 font-mono">Bắn tín hiệu tự động theo ATR & Stochastic</span>
+                </div>
+                
+                <div id="stochSignalFeed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Dynamic Signal Cards loaded via JS -->
+                    <div class="text-center py-8 text-slate-400 font-mono text-sm col-span-full">Đang quét tín hiệu thị trường...</div>
+                </div>
+            </div>
+
+            <!-- Full Ranking Matrix Table -->
+            <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-6 shadow-sm space-y-4">
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-200 tracking-wider">BẢNG XẾP HẠNG TÍN HIỆU STOCHASTIC TOÀN THỊ TRƯỜNG</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">Xếp hạng theo độ hội tụ tín hiệu bắt đáy, thanh khoản và mẫu hình nến đảo chiều</p>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="relative">
+                            <input type="text" id="stochSearchInput" oninput="applyStochFilter()" placeholder="Tìm mã CP..." class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500 w-32 md:w-44">
+                        </div>
+                        <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-mono">
+                            <button onclick="setStochFilter('all')" id="btnStochAll" class="stoch-filter-btn px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/50">Tất Cả</button>
+                            <button onclick="setStochFilter('buy')" id="btnStochBuy" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">🔥 Bắt Đáy</button>
+                            <button onclick="setStochFilter('oversold')" id="btnStochOversold" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">⚡ Quá Bán (≤20)</button>
+                            <button onclick="setStochFilter('bullish')" id="btnStochBullish" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">🚀 Tăng</button>
+                            <button onclick="setStochFilter('overbought')" id="btnStochOverbought" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">⚠️ Quá Mua (≥80)</button>
+                            <button onclick="setStochFilter('liquidity')" id="btnStochLiquidity" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">💎 GTGD > 5 Tỷ</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-brand-borderDark">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-slate-100 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 uppercase border-b border-slate-200 dark:border-brand-borderDark">
+                            <tr>
+                                <th class="p-3 text-center">Rank</th>
+                                <th class="p-3">Mã CP</th>
+                                <th class="p-3">Ngành</th>
+                                <th class="p-3 text-right">Giá Đóng</th>
+                                <th class="p-3 text-right">% Thay Đổi</th>
+                                <th class="p-3 text-right">GTGD (Tỷ)</th>
+                                <th class="p-3 text-center">Stoch %K</th>
+                                <th class="p-3 text-center">Stoch %D</th>
+                                <th class="p-3 text-center">RSI (14)</th>
+                                <th class="p-3">Mẫu Hình Nến</th>
+                                <th class="p-3">Tín Hiệu Bot</th>
+                                <th class="p-3 text-right">Mục Tiêu (TP)</th>
+                                <th class="p-3 text-right">Cắt Lỗ (SL)</th>
+                                <th class="p-3 text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stochTableBody" class="divide-y divide-slate-200 dark:divide-brand-borderDark bg-white dark:bg-brand-card">
+                            <tr>
+                                <td colspan="14" class="p-8 text-center text-slate-400 font-mono">Đang tải bảng xếp hạng...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
 
         <!-- TAB 3: INVESTOR FLOW BREAKDOWN -->
         <div id="tab-flow" class="tab-content hidden space-y-6">
@@ -1187,6 +1336,205 @@ def index_page():
         }
 
         // Tab Switching
+        
+        // ==========================================
+        // PHOENIX STOCHASTIC RANKING & SCREENER LOGIC
+        // ==========================================
+        let stochScreenerData = null;
+        let currentStochFilter = 'all';
+
+        async function loadStochScreener(refresh = false) {
+            try {
+                const feed = document.getElementById('stochSignalFeed');
+                if (feed && refresh) {
+                    feed.innerHTML = '<div class="text-center py-8 text-slate-400 font-mono text-sm col-span-full">Đang tính toán lại tín hiệu toàn thị trường...</div>';
+                }
+                const res = await fetch(`/api/stoch-screener?refresh=${refresh}`);
+                if (!res.ok) throw new Error("Failed to load stochastic screener");
+                stochScreenerData = await res.json();
+                renderStochUI();
+            } catch (err) {
+                console.error("Error loading stochastic screener:", err);
+            }
+        }
+
+        function renderStochUI() {
+            if (!stochScreenerData) return;
+            const mb = stochScreenerData.market_breadth || {};
+            
+            // Header stats
+            if (document.getElementById('stochUpdatedDate')) {
+                document.getElementById('stochUpdatedDate').innerText = `Phiên: ${mb.date || 'Mới nhất'} (${mb.total_scanned || 0} mã HOSE)`;
+            }
+            if (document.getElementById('stochRegime')) {
+                document.getElementById('stochRegime').innerText = mb.regime || 'Đang cập nhật';
+            }
+            if (document.getElementById('stochMa20Pct')) {
+                document.getElementById('stochMa20Pct').innerText = `${mb.above_ma20_pct || 0}% mã > MA20 (${mb.advancers || 0} tăng / ${mb.decliners || 0} giảm)`;
+            }
+            if (document.getElementById('stochBuyCount')) {
+                document.getElementById('stochBuyCount').innerText = mb.buy_count || 0;
+            }
+            if (document.getElementById('stochOversoldCount')) {
+                document.getElementById('stochOversoldCount').innerText = mb.oversold_count || 0;
+            }
+            if (document.getElementById('stochOverboughtCount')) {
+                document.getElementById('stochOverboughtCount').innerText = mb.overbought_count || 0;
+            }
+
+            // Render Signal Feed Cards (Top BUY signals)
+            const feed = document.getElementById('stochSignalFeed');
+            if (feed) {
+                const buyStocks = (stochScreenerData.stocks || []).filter(s => s.signal_type === 'BUY_STRONG' || s.signal_type === 'BUY');
+                if (buyStocks.length === 0) {
+                    feed.innerHTML = '<div class="text-center py-8 text-slate-400 font-mono text-sm col-span-full">Hôm nay không có mã nào kích hoạt điểm mua quá bán đạt chuẩn. Thị trường đang trong pha giằng co hoặc tích lũy.</div>';
+                } else {
+                    feed.innerHTML = buyStocks.slice(0, 6).map(s => {
+                        const isStrong = s.signal_type === 'BUY_STRONG';
+                        const badgeColor = isStrong ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'bg-sky-500/20 text-sky-400 border-sky-500/50';
+                        return `
+                            <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark hover:border-emerald-500/50 rounded-xl p-4 transition shadow-sm hover:shadow-md flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="flex items-center space-x-2">
+                                                <span class="text-base font-extrabold text-slate-900 dark:text-white cursor-pointer hover:text-emerald-400" onclick="quickSelectStock('${s.symbol}')">${s.symbol}</span>
+                                                <span class="text-[11px] px-2 py-0.5 rounded font-bold border ${badgeColor}">${s.signal}</span>
+                                            </div>
+                                            <div class="text-[11px] text-slate-400 mt-0.5">${s.sector}</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-sm font-extrabold ${s.change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-mono">${s.price.toLocaleString()}</div>
+                                            <div class="text-[11px] font-mono ${s.change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs font-mono">
+                                        <div><span class="text-slate-400">Target TP:</span> <span class="font-bold text-emerald-400">${s.target.toLocaleString()}</span></div>
+                                        <div><span class="text-slate-400">Cắt lỗ SL:</span> <span class="font-bold text-rose-400">${s.stop_loss.toLocaleString()}</span></div>
+                                        <div><span class="text-slate-400">Stoch %K/%D:</span> <span class="font-bold text-sky-400">${s.stoch_k} / ${s.stoch_d}</span></div>
+                                        <div><span class="text-slate-400">RSI(14):</span> <span class="font-bold text-amber-400">${s.rsi}</span></div>
+                                    </div>
+                                    <div class="mt-2 text-[11px] font-mono text-slate-400">
+                                        Nến: <span class="text-slate-200 font-bold">${s.pattern}</span> | GTGD: <span class="text-slate-200 font-bold">${s.turnover_ty} Tỷ</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-2">
+                                    <button onclick="quickSelectStock('${s.symbol}')" class="w-full py-1.5 text-xs font-bold font-mono rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/40 transition">
+                                        Xem Phân Tích Kỹ Thuật Mã ${s.symbol} →
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Render Table
+            applyStochFilter();
+        }
+
+        function setStochFilter(filter) {
+            currentStochFilter = filter;
+            document.querySelectorAll('.stoch-filter-btn').forEach(btn => {
+                btn.className = 'stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400 transition';
+            });
+            const activeBtnMap = {
+                'all': 'btnStochAll',
+                'buy': 'btnStochBuy',
+                'oversold': 'btnStochOversold',
+                'bullish': 'btnStochBullish',
+                'overbought': 'btnStochOverbought',
+                'liquidity': 'btnStochLiquidity'
+            };
+            const btn = document.getElementById(activeBtnMap[filter]);
+            if (btn) {
+                btn.className = 'stoch-filter-btn px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/50';
+            }
+            applyStochFilter();
+        }
+
+        function applyStochFilter() {
+            if (!stochScreenerData || !stochScreenerData.stocks) return;
+            const searchKeyword = (document.getElementById('stochSearchInput')?.value || '').trim().toUpperCase();
+            let items = [...stochScreenerData.stocks];
+
+            if (currentStochFilter === 'buy') {
+                items = items.filter(s => s.signal_type === 'BUY_STRONG' || s.signal_type === 'BUY');
+            } else if (currentStochFilter === 'oversold') {
+                items = items.filter(s => s.stoch_k <= 20);
+            } else if (currentStochFilter === 'bullish') {
+                items = items.filter(s => s.signal_type === 'BULLISH');
+            } else if (currentStochFilter === 'overbought') {
+                items = items.filter(s => s.stoch_k >= 80);
+            } else if (currentStochFilter === 'liquidity') {
+                items = items.filter(s => s.turnover_ty >= 5.0);
+            }
+
+            if (searchKeyword) {
+                items = items.filter(s => s.symbol.includes(searchKeyword) || s.sector.toUpperCase().includes(searchKeyword));
+            }
+
+            const tbody = document.getElementById('stochTableBody');
+            if (!tbody) return;
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-400 font-mono">Không tìm thấy mã nào phù hợp với bộ lọc hiện tại.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = items.map(s => {
+                let badgeClass = 'bg-slate-800 text-slate-400 border-slate-700';
+                if (s.signal_type === 'BUY_STRONG') badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 font-bold';
+                else if (s.signal_type === 'BUY') badgeClass = 'bg-teal-500/20 text-teal-400 border-teal-500/40 font-bold';
+                else if (s.signal_type === 'WATCH_OVERSOLD') badgeClass = 'bg-sky-500/20 text-sky-400 border-sky-500/40';
+                else if (s.signal_type === 'BULLISH') badgeClass = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+                else if (s.signal_type === 'OVERBOUGHT') badgeClass = 'bg-rose-500/20 text-rose-400 border-rose-500/40';
+                else if (s.signal_type === 'SELL') badgeClass = 'bg-red-500/20 text-red-400 border-red-500/50 font-bold';
+
+                // Stoch %K progress bar style
+                const kVal = Math.min(Math.max(s.stoch_k, 0), 100);
+                let barColor = 'bg-slate-400';
+                if (kVal <= 20) barColor = 'bg-emerald-400';
+                else if (kVal >= 80) barColor = 'bg-rose-400';
+                else barColor = 'bg-sky-400';
+
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer" onclick="quickSelectStock('${s.symbol}')">
+                        <td class="p-3 text-center font-bold text-slate-400">${s.rank}</td>
+                        <td class="p-3 font-extrabold text-slate-900 dark:text-white hover:text-emerald-400 flex items-center space-x-1.5">
+                            <span>${s.symbol}</span>
+                            ${s.signal_type === 'BUY_STRONG' ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>' : ''}
+                        </td>
+                        <td class="p-3 text-slate-400 whitespace-nowrap">${s.sector}</td>
+                        <td class="p-3 text-right font-extrabold text-slate-800 dark:text-slate-200">${s.price.toLocaleString()}</td>
+                        <td class="p-3 text-right font-bold ${s.change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${s.change_pct >= 0 ? '+' : ''}${s.change_pct}%</td>
+                        <td class="p-3 text-right text-slate-300">${s.turnover_ty}</td>
+                        <td class="p-3 text-center">
+                            <span class="font-bold ${kVal <= 20 ? 'text-emerald-400' : (kVal >= 80 ? 'text-rose-400' : 'text-sky-400')}">${s.stoch_k}</span>
+                        </td>
+                        <td class="p-3 text-center text-slate-400">${s.stoch_d}</td>
+                        <td class="p-3 text-center font-bold text-amber-400">${s.rsi}</td>
+                        <td class="p-3 whitespace-nowrap text-slate-300">${s.pattern}</td>
+                        <td class="p-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-[11px] border ${badgeClass}">${s.signal}</span></td>
+                        <td class="p-3 text-right text-emerald-400 font-bold">${s.target.toLocaleString()}</td>
+                        <td class="p-3 text-right text-rose-400 font-bold">${s.stop_loss.toLocaleString()}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="event.stopPropagation(); quickSelectStock('${s.symbol}')" class="px-2.5 py-1 text-[11px] font-bold rounded bg-slate-200 dark:bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-slate-700 dark:text-slate-300 transition">Xem</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function quickSelectStock(symbol) {
+            const input = document.getElementById('stockInput');
+            if (input) input.value = symbol;
+            fetchStockData(symbol);
+            switchTab('tab-technical');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -1199,6 +1547,9 @@ def index_page():
             }
             if (tabId === 'tab-technical' && currentStockData) {
                 Plotly.Plots.resize('plotlyTechContainer');
+            }
+            if (tabId === 'tab-stoch-screener') {
+                if (!stochScreenerData) loadStochScreener();
             }
             if (tabId === 'tab-sectors') {
                 renderSectorBreadth();
@@ -1889,6 +2240,7 @@ def index_page():
 
         async function initApp() {
             try {
+                loadStochScreener();
                 const res = await fetch('/api/screener');
                 allScreenerData = await res.json();
                 
