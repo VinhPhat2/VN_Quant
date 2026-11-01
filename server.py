@@ -1523,12 +1523,17 @@ def index_page():
             }).join('');
         }
 
-        function quickSelectStock(symbol) {
-            const input = document.getElementById('stockInput');
+        async function quickSelectStock(symbol) {
+            if (!symbol) return;
+            symbol = symbol.trim().toUpperCase();
+            const input = document.getElementById('symbolInput');
             if (input) input.value = symbol;
-            fetchStockData(symbol);
+            await loadStock(symbol);
             switchTab('tab-technical');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
+                Plotly.Plots.resize('plotlyTechContainer');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 80);
         }
         
         function switchTab(tabId) {
