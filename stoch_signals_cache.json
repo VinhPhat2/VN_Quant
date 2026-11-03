@@ -2059,7 +2059,7 @@
       "date": "03/11/2026",
       "price": 39300.0,
       "change_pct": 1.16,
-      "turnover_ty": 2.92,
+      "turnover_ty": 2.93,
       "stoch_k": 12.5,
       "stoch_d": 15.3,
       "stoch_prev_k": 14.2,
@@ -3777,7 +3777,7 @@
       "symbol": "PC1",
       "sector": "Dầu khí & Năng lượng",
       "date": "03/11/2026",
-      "price": 18350.0,
+      "price": 15957.16,
       "change_pct": -0.81,
       "turnover_ty": 9.18,
       "stoch_k": 25.5,
@@ -3789,8 +3789,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động trong biên độ 20 - 80",
       "score": 40.0,
-      "target": 19041.0,
-      "stop_loss": 17831.0,
+      "target": 16558.0,
+      "stop_loss": 15506.0,
       "rank": 189
     },
     {
@@ -5157,7 +5157,7 @@
       "symbol": "CCC",
       "sector": "Khác / Sản xuất",
       "date": "03/11/2026",
-      "price": 5600.0,
+      "price": 5384.4,
       "change_pct": -0.71,
       "turnover_ty": 0.0,
       "stoch_k": 39.7,
@@ -5169,8 +5169,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động trong biên độ 20 - 80",
       "score": 40.0,
-      "target": 6030.0,
-      "stop_loss": 5278.0,
+      "target": 5798.0,
+      "stop_loss": 5075.0,
       "rank": 258
     },
     {
@@ -7537,7 +7537,7 @@
       "symbol": "SGN",
       "sector": "Khác / Sản xuất",
       "date": "03/11/2026",
-      "price": 62500.0,
+      "price": 60000.0,
       "change_pct": 1.13,
       "turnover_ty": 3.51,
       "stoch_k": 88.0,
@@ -7549,8 +7549,8 @@
       "signal_type": "OVERBOUGHT",
       "status_desc": "Quá mua cao (K=88.0), cảnh báo chốt lời",
       "score": 20.0,
-      "target": 64809.0,
-      "stop_loss": 60769.0,
+      "target": 62216.0,
+      "stop_loss": 58338.0,
       "rank": 377
     },
     {
@@ -8114,5 +8114,5 @@
       "rank": 405
     }
   ],
-  "updated_at": "2026-11-03 08:22:47"
+  "updated_at": "2026-11-03 18:17:07"
 }
