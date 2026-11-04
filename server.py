@@ -377,21 +377,36 @@ def make_technical_indicator_fig(df_tail, is_dark=True):
     bb_upper = (pd.Series(ma20) + 2 * bb_std).tolist()
     bb_lower = (pd.Series(ma20) - 2 * bb_std).tolist()
 
-    # Stochastic Oscillator (%K=14, %D=3)
-    low14 = pd.Series(lo).rolling(14).min()
-    high14 = pd.Series(hi).rolling(14).max()
-    fast_k = 100 * (pd.Series(cl) - low14) / (high14 - low14 + 1e-8)
+    # Stochastic Oscillator (20, 3, 3)
+    low20 = pd.Series(lo).rolling(20).min()
+    high20 = pd.Series(hi).rolling(20).max()
+    fast_k = 100 * (pd.Series(cl) - low20) / (high20 - low20 + 1e-8)
     stoch_k = fast_k.rolling(3).mean().fillna(50).tolist()
     stoch_d = pd.Series(stoch_k).rolling(3).mean().fillna(50).tolist()
 
+    # Stochastic RSI (9, 9, 3, 3)
+    gain9 = delta.clip(lower=0)
+    loss9 = -delta.clip(upper=0)
+    avg_gain9 = gain9.ewm(alpha=1/9, min_periods=9, adjust=False).mean()
+    avg_loss9 = loss9.ewm(alpha=1/9, min_periods=9, adjust=False).mean()
+    rs9 = avg_gain9 / (avg_loss9 + 1e-8)
+    rsi9 = 100 - (100 / (1 + rs9))
+
+    rsi_low9 = rsi9.rolling(9).min()
+    rsi_high9 = rsi9.rolling(9).max()
+    stoch_rsi_raw = 100 * (rsi9 - rsi_low9) / (rsi_high9 - rsi_low9 + 1e-8)
+    stoch_rsi_k = stoch_rsi_raw.rolling(3).mean().fillna(50).tolist()
+    stoch_rsi_d = pd.Series(stoch_rsi_k).rolling(3).mean().fillna(50).tolist()
+
     fig = make_subplots(
-        rows=4, cols=1, shared_xaxes=True,
-        row_heights=[0.46, 0.18, 0.18, 0.18], vertical_spacing=0.03,
+        rows=5, cols=1, shared_xaxes=True,
+        row_heights=[0.36, 0.16, 0.16, 0.16, 0.16], vertical_spacing=0.025,
         subplot_titles=(
             "Biểu Đồ Nến & Dải Bollinger Bands",
             "Chỉ Báo Sức Mạnh Giá RSI (14)",
             "Chỉ Báo MACD (12, 26, 9)",
-            "Chỉ Báo Stochastic Oscillator (%K=14, %D=3)"
+            "Chỉ Báo Stochastic Oscillator (20, 3, 3)",
+            "Chỉ Báo Stochastic RSI (9, 9, 3, 3)"
         )
     )
 
@@ -411,14 +426,22 @@ def make_technical_indicator_fig(df_tail, is_dark=True):
     fig.add_trace(go.Scatter(x=dates, y=signal, line=dict(color="#F59E0B", width=1.5), name="Signal"), row=3, col=1)
     fig.add_trace(go.Bar(x=dates, y=hist, marker_color=["#00E676" if h >= 0 else "#FF334B" for h in hist], name="MACD Hist"), row=3, col=1)
 
-    # Row 4: Stochastic %K & %D
-    fig.add_trace(go.Scatter(x=dates, y=stoch_k, line=dict(color="#00E5FF", width=1.8), name="Stoch %K (14, 3)"), row=4, col=1)
-    fig.add_trace(go.Scatter(x=dates, y=stoch_d, line=dict(color="#F59E0B", width=1.5, dash="dot"), name="Stoch %D (3)"), row=4, col=1)
+    # Row 4: Stochastic %K & %D (20, 3, 3)
+    fig.add_trace(go.Scatter(x=dates, y=stoch_k, line=dict(color="#38BDF8", width=1.8), name="Stoch %K (20, 3)"), row=4, col=1)
+    fig.add_trace(go.Scatter(x=dates, y=stoch_d, line=dict(color="#FB923C", width=1.5), name="Stoch %D (3)"), row=4, col=1)
     fig.add_hline(y=80, line_dash="dash", line_color="#FF334B", row=4, col=1)
     fig.add_hline(y=20, line_dash="dash", line_color="#00E676", row=4, col=1)
+    fig.update_yaxes(range=[-5, 105], row=4, col=1)
+
+    # Row 5: Stochastic RSI %K & %D (9, 9, 3, 3)
+    fig.add_trace(go.Scatter(x=dates, y=stoch_rsi_k, line=dict(color="#38BDF8", width=1.8), name="Stoch RSI %K (9, 3)"), row=5, col=1)
+    fig.add_trace(go.Scatter(x=dates, y=stoch_rsi_d, line=dict(color="#FB923C", width=1.5), name="Stoch RSI %D (3)"), row=5, col=1)
+    fig.add_hline(y=80, line_dash="dash", line_color="#FF334B", row=5, col=1)
+    fig.add_hline(y=20, line_dash="dash", line_color="#00E676", row=5, col=1)
+    fig.update_yaxes(range=[-5, 105], row=5, col=1)
 
     fig.update_layout(
-        height=820,
+        height=980,
         template="plotly_dark" if is_dark else "plotly_white",
         paper_bgcolor=p_bg,
         plot_bgcolor=p_plot_bg,
@@ -869,10 +892,10 @@ def index_page():
         <div id="tab-technical" class="tab-content hidden space-y-6">
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-5 shadow-sm">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Biểu Đồ Kỹ Thuật Đa Chỉ Báo (Nến OHLC, Bollinger Bands, RSI, MACD & Stochastic)</h3>
+                    <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Biểu Đồ Kỹ Thuật Đa Chỉ Báo (Nến OHLC, Bollinger Bands, RSI, MACD, Stoch 20 3 3 & Stoch RSI 9 9 3 3)</h3>
                     <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Khớp lệnh & chỉ báo kỹ thuật thực tế</span>
                 </div>
-                <div id="plotlyTechContainer" class="w-full min-h-[820px]"></div>
+                <div id="plotlyTechContainer" class="w-full min-h-[980px]"></div>
             </div>
         </div>
 
@@ -972,8 +995,9 @@ def index_page():
                                 <th class="p-3 text-right">Giá Đóng</th>
                                 <th class="p-3 text-right">% Thay Đổi</th>
                                 <th class="p-3 text-right">GTGD (Tỷ)</th>
-                                <th class="p-3 text-center">Stoch %K</th>
-                                <th class="p-3 text-center">Stoch %D</th>
+                                <th class="p-3 text-center">Stoch %K (20,3)</th>
+                                <th class="p-3 text-center">Stoch %D (3)</th>
+                                <th class="p-3 text-center">Stoch RSI (9,9,3,3)</th>
                                 <th class="p-3 text-center">Chênh Lệch (K - D)</th>
                                 <th class="p-3">Tín Hiệu Stochastic</th>
                                 <th class="p-3">Chi Tiết Trạng Thái</th>
@@ -984,7 +1008,7 @@ def index_page():
                         </thead>
                         <tbody id="stochTableBody" class="divide-y divide-slate-200 dark:divide-brand-borderDark bg-white dark:bg-brand-card">
                             <tr>
-                                <td colspan="14" class="p-8 text-center text-slate-400 font-mono">Đang tải bảng xếp hạng...</td>
+                                <td colspan="15" class="p-8 text-center text-slate-400 font-mono">Đang tải bảng xếp hạng...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1410,8 +1434,10 @@ def index_page():
                                     </div>
                                     
                                     <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs font-mono">
-                                        <div><span class="text-slate-400">Stoch %K:</span> <span class="font-extrabold text-emerald-400">${s.stoch_k}</span></div>
-                                        <div><span class="text-slate-400">Stoch %D:</span> <span class="font-bold text-amber-400">${s.stoch_d}</span></div>
+                                        <div><span class="text-slate-400">Stoch %K (20,3):</span> <span class="font-extrabold text-emerald-400">${s.stoch_k}</span></div>
+                                        <div><span class="text-slate-400">Stoch %D (3):</span> <span class="font-bold text-amber-400">${s.stoch_d}</span></div>
+                                        <div><span class="text-slate-400">Stoch RSI %K:</span> <span class="font-extrabold text-sky-400">${s.stoch_rsi_k ?? '--'}</span></div>
+                                        <div><span class="text-slate-400">Stoch RSI %D:</span> <span class="font-bold text-amber-400">${s.stoch_rsi_d ?? '--'}</span></div>
                                         <div><span class="text-slate-400">Chênh lệch K-D:</span> <span class="font-bold ${s.k_diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${s.k_diff >= 0 ? '+' : ''}${s.k_diff}</span></div>
                                         <div><span class="text-slate-400">GTGD:</span> <span class="font-bold text-slate-200">${s.turnover_ty} Tỷ</span></div>
                                     </div>
@@ -1479,7 +1505,7 @@ def index_page():
             if (!tbody) return;
 
             if (items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-400 font-mono">Không tìm thấy mã nào phù hợp với bộ lọc hiện tại.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="15" class="p-8 text-center text-slate-400 font-mono">Không tìm thấy mã nào phù hợp với bộ lọc hiện tại.</td></tr>';
                 return;
             }
 
@@ -1508,6 +1534,9 @@ def index_page():
                             <span class="font-extrabold ${kVal <= 20 ? 'text-emerald-400' : (kVal >= 80 ? 'text-rose-400' : 'text-sky-400')}">${s.stoch_k}</span>
                         </td>
                         <td class="p-3 text-center text-slate-400 font-mono">${s.stoch_d}</td>
+                        <td class="p-3 text-center font-mono whitespace-nowrap">
+                            <span class="text-sky-400 font-bold">${s.stoch_rsi_k ?? '--'}</span> <span class="text-slate-500">/</span> <span class="text-amber-400">${s.stoch_rsi_d ?? '--'}</span>
+                        </td>
                         <td class="p-3 text-center font-bold font-mono ${s.k_diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
                             ${s.k_diff >= 0 ? '+' : ''}${s.k_diff}
                         </td>

@@ -38,12 +38,29 @@ def compute_stoch_signals(data_dir=None):
             lo = df['THẤP'].astype(float)
             val = df['TỔNG GIÁ TRỊ'].astype(float)
             
-            # Stochastic Oscillator chuẩn (%K=14, %D=3)
-            low14 = lo.rolling(14).min()
-            high14 = hi.rolling(14).max()
-            fast_k = 100 * (cl - low14) / (high14 - low14 + 1e-8)
+            # Stochastic Oscillator (20, 3, 3)
+            low20 = lo.rolling(20).min()
+            high20 = hi.rolling(20).max()
+            fast_k = 100 * (cl - low20) / (high20 - low20 + 1e-8)
             stoch_k = fast_k.rolling(3).mean()
             stoch_d = stoch_k.rolling(3).mean()
+
+            # Stochastic RSI (9, 9, 3, 3)
+            delta = cl.diff()
+            gain9 = delta.clip(lower=0)
+            loss9 = -delta.clip(upper=0)
+            avg_gain9 = gain9.ewm(alpha=1/9, min_periods=9, adjust=False).mean()
+            avg_loss9 = loss9.ewm(alpha=1/9, min_periods=9, adjust=False).mean()
+            rs9 = avg_gain9 / (avg_loss9 + 1e-8)
+            rsi9 = 100 - (100 / (1 + rs9))
+
+            rsi_low9 = rsi9.rolling(9).min()
+            rsi_high9 = rsi9.rolling(9).max()
+            stoch_rsi_raw = 100 * (rsi9 - rsi_low9) / (rsi_high9 - rsi_low9 + 1e-8)
+            srsi_k_s = stoch_rsi_raw.rolling(3).mean()
+            srsi_d_s = srsi_k_s.rolling(3).mean()
+            srsi_k_val = round(float(srsi_k_s.iloc[-1]), 1) if pd.notna(srsi_k_s.iloc[-1]) else 50.0
+            srsi_d_val = round(float(srsi_d_s.iloc[-1]), 1) if pd.notna(srsi_d_s.iloc[-1]) else 50.0
             
             # Giá trị phiên mới nhất và phiên trước đó
             k_now = float(stoch_k.iloc[-1])
@@ -141,6 +158,8 @@ def compute_stoch_signals(data_dir=None):
                 "turnover_ty": round(turnover_ty, 2),
                 "stoch_k": round(k_now, 1),
                 "stoch_d": round(d_now, 1),
+                "stoch_rsi_k": srsi_k_val,
+                "stoch_rsi_d": srsi_d_val,
                 "stoch_prev_k": round(k_prev, 1),
                 "stoch_prev_d": round(d_prev, 1),
                 "k_diff": round(k_diff, 1),
