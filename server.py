@@ -1368,7 +1368,7 @@ def index_page():
             const btn = document.getElementById('btnSyncMarket');
             const icon = document.getElementById('syncIcon');
             const text = document.getElementById('syncText');
-            if (!confirm('Bạn có muốn cập nhật phiên giao dịch mới nhất từ Kafi ngay bây giờ?\n(Hệ thống sẽ tải đa luồng trong khoảng 15-20 giây)')) {
+            if (!confirm(`Bạn có muốn cập nhật phiên giao dịch mới nhất từ Kafi ngay bây giờ?\n(Hệ thống sẽ tải đa luồng trong khoảng 15-20 giây)`)) {
                 return;
             }
             isSyncingMarket = true;
@@ -1381,8 +1381,8 @@ def index_page():
                 const data = await res.json();
                 if (res.ok && data.status === 'success') {
                     icon.innerText = '✅';
-                    text.innerText = 'Đã cập nhật (' + (data.latest_date || 'Mới nhất') + ')';
-                    alert('🎉 Hoàn tất! ' + data.message + '\nDữ liệu biểu đồ và bộ lọc sẽ tự động làm mới.');
+                    text.innerText = `Đã cập nhật (${data.latest_date || 'Mới nhất'})`;
+                    alert(`Hoàn tất! ${data.message || ''}\nDữ liệu biểu đồ và bộ lọc sẽ tự động làm mới.`);
                     if (currentStockData && currentStockData.symbol) {
                         loadStock(currentStockData.symbol);
                     }
@@ -1392,12 +1392,12 @@ def index_page():
                 } else {
                     icon.innerText = '⚠️';
                     text.innerText = 'Lỗi cập nhật';
-                    alert('⚠️ Lỗi: ' + (data.message || 'Không thể đồng bộ.'));
+                    alert('Lỗi: ' + (data.message || 'Không thể đồng bộ.'));
                 }
             } catch (err) {
                 icon.innerText = '❌';
                 text.innerText = 'Lỗi mạng';
-                alert('❌ Lỗi kết nối máy chủ: ' + err.message);
+                alert('Lỗi kết nối máy chủ: ' + err.message);
             } finally {
                 setTimeout(() => {
                     isSyncingMarket = false;
@@ -1409,7 +1409,7 @@ def index_page():
             }
         }
 
-function openShareModal() { document.getElementById('shareModal').classList.remove('hidden'); }
+        function openShareModal() { document.getElementById('shareModal').classList.remove('hidden'); }
         function closeShareModal() { document.getElementById('shareModal').classList.add('hidden'); }
 
         // Theme management
