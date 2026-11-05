@@ -894,10 +894,7 @@ def index_page():
                 <span id="syncText">Cập Nhật Phiên Mới</span>
             </button>
 
-<!-- Share Modal Trigger Button -->
-            <button onclick="openShareModal()" class="flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition">
-                <span>🔗 Chia Sẻ Web</span>
-            </button>
+
 
             <!-- Theme Toggle -->
             <button onclick="toggleTheme()" id="themeToggleBtn" class="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition">

@@ -322,19 +322,16 @@ class KafiDownloader:
                     final_df = std_df
             else:
                 if is_index:
-                    existing_dates = set(pd.to_datetime(existing_df["NGÀY"], format="%d/%m/%Y", errors="coerce").dt.strftime("%d/%m/%Y").dropna())
-                    new_rows = std_df[~std_df["NGÀY"].isin(existing_dates)].copy()
+                    # Cho phép ghi đè/cập nhật nến intraday nếu bấm trong phiên
+                    combined = pd.concat([std_df, existing_df], ignore_index=True)
+                    combined["_dt_sort"] = pd.to_datetime(combined["NGÀY"], format="%d/%m/%Y", errors="coerce")
+                    final_df = combined.dropna(subset=["_dt_sort"]).drop_duplicates(subset=["_dt_sort"], keep="first")
+                    final_df = final_df.sort_values(by="_dt_sort", ascending=False).drop(columns=["_dt_sort"])
                 else:
                     std_df["_dt_chk"] = pd.to_datetime(std_df["NGÀY"], format="%d/%m/%Y", errors="coerce")
                     new_rows = std_df[std_df["_dt_chk"] > cutoff_date].copy()
                     new_rows.drop(columns=["_dt_chk"], inplace=True)
-
-                if new_rows.empty and not existing_df.empty:
-                    print(f"ℹ️ [{symbol}] Đã ở trạng thái mới nhất ({fetch_time:.2f}s).", flush=True)
-                    return
-
-                print(f"🔥 [{symbol}] Tải {len(std_df)} phiên ({fetch_time:.2f}s) -> Thêm mới {len(new_rows)} phiên chuẩn tới ngày hiện tại.", flush=True)
-                final_df = pd.concat([new_rows, existing_df], ignore_index=True)
+                    final_df = pd.concat([new_rows, existing_df], ignore_index=True)
 
         final_df = final_df.reindex(columns=TARGET_COLUMNS)
 
