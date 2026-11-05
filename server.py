@@ -564,12 +564,7 @@ def sync_market_data():
                 df_chk = pd.read_csv(ssi_p, nrows=2)
                 latest_date = str(df_chk.iloc[0, 0])
                 
-        try:
-            import threading
-            from update_deciles_cache import main as update_deciles_main
-            threading.Thread(target=update_deciles_main, daemon=True).start()
-        except Exception:
-            pass
+
 
         gh_token = os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN")
         gh_status = "none"
@@ -2421,6 +2416,13 @@ function openShareModal() { document.getElementById('shareModal').classList.remo
 </body>
 </html>
     """
+
+
+# Pre-warm SSI cache for instant page load
+try:
+    get_stock_analysis("SSI", "dark")
+except Exception as e:
+    pass
 
 if __name__ == "__main__":
     print("="*60)
