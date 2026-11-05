@@ -531,6 +531,73 @@ def get_vci_financial_data(symbol: str):
 
 _stock_cache = {}
 
+
+_is_syncing_data = False
+
+@app.api_route("/api/sync-market-data", methods=["GET", "POST"])
+def sync_market_data():
+    global _is_syncing_data
+    if _is_syncing_data:
+        return JSONResponse(
+            status_code=429,
+            content={"status": "busy", "message": "Hệ thống đang tiến hành cập nhật dữ liệu từ Kafi. Vui lòng chờ..."}
+        )
+    
+    _is_syncing_data = True
+    try:
+        data_dir = get_data_dir()
+        from kafi_downloader import sync_all_hose
+        total_symbols = sync_all_hose(output_dir=data_dir, max_workers=8)
+        
+        # Xóa in-memory cache
+        _stock_cache.clear()
+        _financial_cache.clear()
+        
+        # Tính toán lại tín hiệu Phoenix Stochastic Screener
+        from stoch_screener import compute_stoch_signals
+        stoch_res = compute_stoch_signals(data_dir)
+        latest_date = stoch_res.get("market_breadth", {}).get("date", "")
+        
+        if not latest_date:
+            ssi_p = get_file_path("SSI", data_dir)
+            if ssi_p and os.path.exists(ssi_p):
+                df_chk = pd.read_csv(ssi_p, nrows=2)
+                latest_date = str(df_chk.iloc[0, 0])
+                
+        try:
+            import threading
+            from update_deciles_cache import main as update_deciles_main
+            threading.Thread(target=update_deciles_main, daemon=True).start()
+        except Exception:
+            pass
+
+        gh_token = os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN")
+        gh_status = "none"
+        if gh_token:
+            try:
+                import requests
+                r_gh = requests.post(
+                    "https://api.github.com/repos/trunghieunguyen2409/stock_data/actions/workflows/daily_update.yml/dispatches",
+                    headers={"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json"},
+                    json={"ref": "main"},
+                    timeout=5
+                )
+                gh_status = f"code_{r_gh.status_code}"
+            except Exception as e_gh:
+                gh_status = f"err_{e_gh}"
+
+        return {
+            "status": "success",
+            "latest_date": latest_date,
+            "total_symbols": total_symbols,
+            "gh_status": gh_status,
+            "message": f"Đã cập nhật thành công {total_symbols} mã HOSE và 5 chỉ số tới phiên {latest_date}!"
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": f"Lỗi cập nhật: {str(e)}"})
+    finally:
+        _is_syncing_data = False
+
 @app.get("/api/clear-cache")
 def clear_cache():
     _stock_cache.clear()
@@ -821,7 +888,13 @@ def index_page():
             <span class="text-xs text-slate-500 dark:text-slate-400 hidden md:inline border-l border-slate-200 dark:border-slate-800 pl-4 font-mono">Institutional Flow Alpha & Bayesian Ridge Engine (387 Symbols)</span>
         </div>
         <div class="flex items-center space-x-3">
-            <!-- Share Modal Trigger Button -->
+                        <!-- 1-Click Sync Market Data Button -->
+            <button id="btnSyncMarket" onclick="triggerManualSync()" title="Nhấn để cập nhật phiên mới nhất từ Kafi cho toàn bộ 405 mã sàn HOSE (~20s)" class="flex items-center space-x-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm">
+                <span id="syncIcon">⚡</span>
+                <span id="syncText">Cập Nhật Phiên Mới</span>
+            </button>
+
+<!-- Share Modal Trigger Button -->
             <button onclick="openShareModal()" class="flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition">
                 <span>🔗 Chia Sẻ Web</span>
             </button>
@@ -1337,7 +1410,60 @@ def index_page():
         let matrixHistInstance = null;
         let sectorChartInstance = null;
 
-        function openShareModal() { document.getElementById('shareModal').classList.remove('hidden'); }
+                let isSyncingMarket = false;
+        async function triggerManualSync() {
+            if (isSyncingMarket) return;
+            const btn = document.getElementById('btnSyncMarket');
+            const icon = document.getElementById('syncIcon');
+            const text = document.getElementById('syncText');
+            
+            if (!confirm('Bạn có muốn cập nhật phiên giao dịch mới nhất cho toàn bộ sàn HOSE từ Kafi ngay bây giờ?\n(Hệ thống sẽ tải đa luồng trong khoảng 15-25 giây)')) {
+                return;
+            }
+            
+            isSyncingMarket = true;
+            btn.disabled = true;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+            icon.innerHTML = '<svg class="animate-spin h-3.5 w-3.5 inline text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
+            text.innerText = 'Đang đồng bộ Kafi (~20s)...';
+            
+            try {
+                const res = await fetch('/api/sync-market-data', { method: 'POST' });
+                const data = await res.json();
+                
+                if (res.ok && data.status === 'success') {
+                    icon.innerText = '✅';
+                    text.innerText = 'Đã cập nhật (' + (data.latest_date || 'Mới nhất') + ')';
+                    alert('🎉 Hoàn tất! ' + data.message + '\nDữ liệu biểu đồ và bộ lọc sẽ tự động làm mới.');
+                    
+                    // Làm mới mã đang xem và bộ lọc Stochastic
+                    if (currentStockData && currentStockData.symbol) {
+                        loadStock(currentStockData.symbol);
+                    }
+                    if (typeof loadStochScreener === 'function') {
+                        loadStochScreener(true);
+                    }
+                } else {
+                    icon.innerText = '⚠️';
+                    text.innerText = 'Lỗi cập nhật';
+                    alert('⚠️ Lỗi: ' + (data.message || 'Không thể đồng bộ dữ liệu.'));
+                }
+            } catch (err) {
+                icon.innerText = '❌';
+                text.innerText = 'Lỗi mạng';
+                alert('❌ Lỗi kết nối máy chủ: ' + err.message);
+            } finally {
+                setTimeout(() => {
+                    isSyncingMarket = false;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                    icon.innerText = '⚡';
+                    text.innerText = 'Cập Nhật Phiên Mới';
+                }, 5000);
+            }
+        }
+
+function openShareModal() { document.getElementById('shareModal').classList.remove('hidden'); }
         function closeShareModal() { document.getElementById('shareModal').classList.add('hidden'); }
 
         // Theme management

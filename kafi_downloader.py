@@ -351,35 +351,34 @@ class KafiDownloader:
             print(f"❌ [{symbol}] Ghi file CSV thất bại: {e}\n", flush=True)
 
 
-if __name__ == "__main__":
-    downloader = KafiDownloader()
-    OUTPUT_DIRECTORY = "csv_data"
-
-    # Lấy toàn bộ các mã cổ phiếu hiện có trong thư mục csv_data để cập nhật
-    stock_files = glob.glob(f"{OUTPUT_DIRECTORY}/Kafi_Phân_Loại_Nhà_Đầu_Tư_*.csv")
+def sync_all_hose(output_dir: str = "csv_data", max_workers: int = 8) -> int:
+    downloader = KafiDownloader(map_path=os.path.join(os.path.dirname(__file__), "fiintrade_master_map.json"))
+    os.makedirs(output_dir, exist_ok=True)
+    stock_files = glob.glob(f"{output_dir}/Kafi_Phân_Loại_Nhà_Đầu_Tư_*.csv")
     stock_list = sorted([os.path.basename(f).replace("Kafi_Phân_Loại_Nhà_Đầu_Tư_", "").replace(".csv", "") for f in stock_files])
 
     print("=" * 70, flush=True)
     print(f"🚀 BẮT ĐẦU CẬP NHẬT DỮ LIỆU KAFI CHO TOÀN BỘ SÀN HOSE ({len(stock_list)} MÃ CP & {len(INDEX_LIST)} CHỈ SỐ)", flush=True)
-    print(f"📁 Thư mục lưu: {os.path.abspath(OUTPUT_DIRECTORY)}", flush=True)
+    print(f"📁 Thư mục lưu: {os.path.abspath(output_dir)}", flush=True)
     print("=" * 70, flush=True)
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    # 1. Cập nhật chỉ số
     for idx_sym in INDEX_LIST:
-        downloader.sync_to_csv(idx_sym, output_dir=OUTPUT_DIRECTORY, is_index=True)
+        try:
+            downloader.sync_to_csv(idx_sym, output_dir=output_dir, is_index=True)
+        except Exception as e:
+            print(f"❌ [{idx_sym}] Lỗi sync index: {e}")
 
-    # 2. Cập nhật tất cả cổ phiếu HOSE đa luồng (8 workers) siêu tốc
-    print(f"⚡ Đang chạy song song 8 luồng cập nhật cho {len(stock_list)} mã cổ phiếu...", flush=True)
+    print(f"⚡ Đang chạy song song {max_workers} luồng cập nhật cho {len(stock_list)} mã cổ phiếu...", flush=True)
     completed_cnt = 0
     def _sync_worker(s):
         try:
-            downloader.sync_to_csv(s, output_dir=OUTPUT_DIRECTORY, is_index=False)
+            downloader.sync_to_csv(s, output_dir=output_dir, is_index=False)
         except Exception as err:
             print(f"❌ [{s}] Lỗi sync: {err}")
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_sync_worker, sym): sym for sym in stock_list}
         for future in as_completed(futures):
             completed_cnt += 1
@@ -389,3 +388,8 @@ if __name__ == "__main__":
     print("=" * 70, flush=True)
     print(f"🎉 HOÀN THÀNH CẬP NHẬT TOÀN BỘ {len(stock_list)} MÃ SÀN HOSE VÀ {len(INDEX_LIST)} CHỈ SỐ!", flush=True)
     print("=" * 70, flush=True)
+    return len(stock_list)
+
+
+if __name__ == "__main__":
+    sync_all_hose(output_dir="csv_data", max_workers=8)
