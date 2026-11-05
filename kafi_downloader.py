@@ -322,16 +322,19 @@ class KafiDownloader:
                     final_df = std_df
             else:
                 if is_index:
-                    # Cho phép ghi đè/cập nhật nến intraday nếu bấm trong phiên
-                    combined = pd.concat([std_df, existing_df], ignore_index=True)
-                    combined["_dt_sort"] = pd.to_datetime(combined["NGÀY"], format="%d/%m/%Y", errors="coerce")
-                    final_df = combined.dropna(subset=["_dt_sort"]).drop_duplicates(subset=["_dt_sort"], keep="first")
-                    final_df = final_df.sort_values(by="_dt_sort", ascending=False).drop(columns=["_dt_sort"])
+                    existing_dates = set(pd.to_datetime(existing_df["NGÀY"], format="%d/%m/%Y", errors="coerce").dt.strftime("%d/%m/%Y").dropna())
+                    new_rows = std_df[~std_df["NGÀY"].isin(existing_dates)].copy()
                 else:
                     std_df["_dt_chk"] = pd.to_datetime(std_df["NGÀY"], format="%d/%m/%Y", errors="coerce")
                     new_rows = std_df[std_df["_dt_chk"] > cutoff_date].copy()
                     new_rows.drop(columns=["_dt_chk"], inplace=True)
-                    final_df = pd.concat([new_rows, existing_df], ignore_index=True)
+
+                if new_rows.empty and not existing_df.empty:
+                    print(f"ℹ️ [{symbol}] Đã ở trạng thái mới nhất ({fetch_time:.2f}s).", flush=True)
+                    return
+
+                print(f"🔥 [{symbol}] Tải {len(std_df)} phiên ({fetch_time:.2f}s) -> Thêm mới {len(new_rows)} phiên chuẩn tới ngày hiện tại.", flush=True)
+                final_df = pd.concat([new_rows, existing_df], ignore_index=True)
 
         final_df = final_df.reindex(columns=TARGET_COLUMNS)
 
@@ -348,45 +351,31 @@ class KafiDownloader:
             print(f"❌ [{symbol}] Ghi file CSV thất bại: {e}\n", flush=True)
 
 
-def sync_all_hose(output_dir: str = "csv_data", max_workers: int = 8) -> int:
+def sync_all_hose(output_dir="csv_data", max_workers=8):
     downloader = KafiDownloader(map_path=os.path.join(os.path.dirname(__file__), "fiintrade_master_map.json"))
     os.makedirs(output_dir, exist_ok=True)
     stock_files = glob.glob(f"{output_dir}/Kafi_Phân_Loại_Nhà_Đầu_Tư_*.csv")
     stock_list = sorted([os.path.basename(f).replace("Kafi_Phân_Loại_Nhà_Đầu_Tư_", "").replace(".csv", "") for f in stock_files])
 
-    print("=" * 70, flush=True)
-    print(f"🚀 BẮT ĐẦU CẬP NHẬT DỮ LIỆU KAFI CHO TOÀN BỘ SÀN HOSE ({len(stock_list)} MÃ CP & {len(INDEX_LIST)} CHỈ SỐ)", flush=True)
-    print(f"📁 Thư mục lưu: {os.path.abspath(output_dir)}", flush=True)
-    print("=" * 70, flush=True)
-
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import ThreadPoolExecutor
 
     for idx_sym in INDEX_LIST:
         try:
             downloader.sync_to_csv(idx_sym, output_dir=output_dir, is_index=True)
-        except Exception as e:
-            print(f"❌ [{idx_sym}] Lỗi sync index: {e}")
+        except Exception:
+            pass
 
-    print(f"⚡ Đang chạy song song {max_workers} luồng cập nhật cho {len(stock_list)} mã cổ phiếu...", flush=True)
-    completed_cnt = 0
     def _sync_worker(s):
         try:
             downloader.sync_to_csv(s, output_dir=output_dir, is_index=False)
-        except Exception as err:
-            print(f"❌ [{s}] Lỗi sync: {err}")
+        except Exception:
+            pass
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(_sync_worker, sym): sym for sym in stock_list}
-        for future in as_completed(futures):
-            completed_cnt += 1
-            if completed_cnt % 50 == 0 or completed_cnt == len(stock_list):
-                print(f"✅ Đã xử lý {completed_cnt}/{len(stock_list)} mã cổ phiếu...", flush=True)
+        list(executor.map(_sync_worker, stock_list))
 
-    print("=" * 70, flush=True)
-    print(f"🎉 HOÀN THÀNH CẬP NHẬT TOÀN BỘ {len(stock_list)} MÃ SÀN HOSE VÀ {len(INDEX_LIST)} CHỈ SỐ!", flush=True)
-    print("=" * 70, flush=True)
     return len(stock_list)
 
 
 if __name__ == "__main__":
-    sync_all_hose(output_dir="csv_data", max_workers=8)
+    sync_all_hose("csv_data", 8)

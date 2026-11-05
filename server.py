@@ -538,58 +538,20 @@ _is_syncing_data = False
 def sync_market_data():
     global _is_syncing_data
     if _is_syncing_data:
-        return JSONResponse(
-            status_code=429,
-            content={"status": "busy", "message": "Hệ thống đang tiến hành cập nhật dữ liệu từ Kafi. Vui lòng chờ..."}
-        )
-    
+        return JSONResponse(status_code=429, content={"status": "busy", "message": "Hệ thống đang đồng bộ dữ liệu..."})
     _is_syncing_data = True
     try:
         data_dir = get_data_dir()
         from kafi_downloader import sync_all_hose
-        total_symbols = sync_all_hose(output_dir=data_dir, max_workers=8)
-        
-        # Xóa in-memory cache
+        total = sync_all_hose(data_dir, max_workers=8)
         _stock_cache.clear()
         _financial_cache.clear()
-        
-        # Tính toán lại tín hiệu Phoenix Stochastic Screener
         from stoch_screener import compute_stoch_signals
-        stoch_res = compute_stoch_signals(data_dir)
-        latest_date = stoch_res.get("market_breadth", {}).get("date", "")
-        
-        if not latest_date:
-            ssi_p = get_file_path("SSI", data_dir)
-            if ssi_p and os.path.exists(ssi_p):
-                df_chk = pd.read_csv(ssi_p, nrows=2)
-                latest_date = str(df_chk.iloc[0, 0])
-                
-
-
-        gh_token = os.environ.get("GH_PAT") or os.environ.get("GITHUB_TOKEN")
-        gh_status = "none"
-        if gh_token:
-            try:
-                import requests
-                r_gh = requests.post(
-                    "https://api.github.com/repos/trunghieunguyen2409/stock_data/actions/workflows/daily_update.yml/dispatches",
-                    headers={"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json"},
-                    json={"ref": "main"},
-                    timeout=5
-                )
-                gh_status = f"code_{r_gh.status_code}"
-            except Exception as e_gh:
-                gh_status = f"err_{e_gh}"
-
-        return {
-            "status": "success",
-            "latest_date": latest_date,
-            "total_symbols": total_symbols,
-            "gh_status": gh_status,
-            "message": f"Đã cập nhật thành công {total_symbols} mã HOSE và 5 chỉ số tới phiên {latest_date}!"
-        }
+        res = compute_stoch_signals(data_dir)
+        d = res.get("market_breadth", {}).get("date", "Mới nhất")
+        return {"status": "success", "latest_date": d, "message": f"Đã cập nhật thành công {total} mã tới phiên {d}!"}
     except Exception as e:
-        return JSONResponse(status_code=500, content={"status": "error", "message": f"Lỗi cập nhật: {str(e)}"})
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
     finally:
         _is_syncing_data = False
 
@@ -824,7 +786,7 @@ def index_page():
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
     <!-- Plotly.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -883,13 +845,11 @@ def index_page():
             <span class="text-xs text-slate-500 dark:text-slate-400 hidden md:inline border-l border-slate-200 dark:border-slate-800 pl-4 font-mono">Institutional Flow Alpha & Bayesian Ridge Engine (387 Symbols)</span>
         </div>
         <div class="flex items-center space-x-3">
-                        <!-- 1-Click Sync Market Data Button -->
-            <button id="btnSyncMarket" onclick="triggerManualSync()" title="Nhấn để cập nhật phiên mới nhất từ Kafi cho toàn bộ 405 mã sàn HOSE (~20s)" class="flex items-center space-x-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm">
+            <!-- 1-Click Sync Market Data Button -->
+            <button id="btnSyncMarket" onclick="triggerManualSync()" title="Nhấn để cập nhật phiên mới nhất từ Kafi cho toàn bộ sàn HOSE (~20s)" class="flex items-center space-x-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm">
                 <span id="syncIcon">⚡</span>
                 <span id="syncText">Cập Nhật Phiên Mới</span>
             </button>
-
-
 
             <!-- Theme Toggle -->
             <button onclick="toggleTheme()" id="themeToggleBtn" class="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition">
@@ -1408,27 +1368,21 @@ def index_page():
             const btn = document.getElementById('btnSyncMarket');
             const icon = document.getElementById('syncIcon');
             const text = document.getElementById('syncText');
-            
-            if (!confirm('Bạn có muốn cập nhật phiên giao dịch mới nhất cho toàn bộ sàn HOSE từ Kafi ngay bây giờ?\n(Hệ thống sẽ tải đa luồng trong khoảng 15-25 giây)')) {
+            if (!confirm('Bạn có muốn cập nhật phiên giao dịch mới nhất từ Kafi ngay bây giờ?\n(Hệ thống sẽ tải đa luồng trong khoảng 15-20 giây)')) {
                 return;
             }
-            
             isSyncingMarket = true;
             btn.disabled = true;
             btn.classList.add('opacity-70', 'cursor-not-allowed');
-            icon.innerHTML = '<svg class="animate-spin h-3.5 w-3.5 inline text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>';
+            icon.innerText = '⏳';
             text.innerText = 'Đang đồng bộ Kafi (~20s)...';
-            
             try {
                 const res = await fetch('/api/sync-market-data', { method: 'POST' });
                 const data = await res.json();
-                
                 if (res.ok && data.status === 'success') {
                     icon.innerText = '✅';
                     text.innerText = 'Đã cập nhật (' + (data.latest_date || 'Mới nhất') + ')';
                     alert('🎉 Hoàn tất! ' + data.message + '\nDữ liệu biểu đồ và bộ lọc sẽ tự động làm mới.');
-                    
-                    // Làm mới mã đang xem và bộ lọc Stochastic
                     if (currentStockData && currentStockData.symbol) {
                         loadStock(currentStockData.symbol);
                     }
@@ -1438,7 +1392,7 @@ def index_page():
                 } else {
                     icon.innerText = '⚠️';
                     text.innerText = 'Lỗi cập nhật';
-                    alert('⚠️ Lỗi: ' + (data.message || 'Không thể đồng bộ dữ liệu.'));
+                    alert('⚠️ Lỗi: ' + (data.message || 'Không thể đồng bộ.'));
                 }
             } catch (err) {
                 icon.innerText = '❌';
@@ -1726,21 +1680,7 @@ function openShareModal() { document.getElementById('shareModal').classList.remo
         }
 
         // Load Stock Data instantly
-                function safeRenderPlotly(containerId, plotData, plotLayout, retries = 15) {
-            const el = document.getElementById(containerId);
-            if (!el) return;
-            if (window.Plotly && typeof Plotly.react === 'function') {
-                try {
-                    Plotly.react(containerId, plotData, plotLayout, {responsive: true, displayModeBar: false});
-                } catch (e) {
-                    console.error("Plotly render error for " + containerId, e);
-                }
-            } else if (retries > 0) {
-                setTimeout(() => safeRenderPlotly(containerId, plotData, plotLayout, retries - 1), 250);
-            }
-        }
-
-async function loadStock(symbol) {
+        async function loadStock(symbol) {
             symbol = symbol.trim().toUpperCase();
             if (!symbol) return;
             try {
@@ -1772,9 +1712,11 @@ async function loadStock(symbol) {
                 // Update Chart Title
                 document.getElementById('decileChartTitle').innerText = `1. Biểu Đồ Giá & Phân Vùng Tín Hiệu OOS ${data.symbol} (Thang Đo RdYlGn Decile 1 → ${data.n_deciles})`;
 
-                // Render Plotly Figures safely with retry if CDN is still loading
-                safeRenderPlotly('plotlyDecileContainer', data.plotly_decile_fig.data, data.plotly_decile_fig.layout);
-                safeRenderPlotly('plotlyTechContainer', data.plotly_tech_fig.data, data.plotly_tech_fig.layout);
+                // Render Exact Plotly Decile Figure from Notebook (RdYlGn colorscale, Decile 1 to n_deciles)
+                Plotly.react('plotlyDecileContainer', data.plotly_decile_fig.data, data.plotly_decile_fig.layout, {responsive: true, displayModeBar: false});
+
+                // Render Technical Indicators Figure
+                Plotly.react('plotlyTechContainer', data.plotly_tech_fig.data, data.plotly_tech_fig.layout, {responsive: true, displayModeBar: false});
 
                 // Update Flow Cards
                 let f_sum = data.flow.reduce((acc, x) => acc + x.foreign, 0);
@@ -2399,47 +2341,29 @@ async function loadStock(symbol) {
         }
 
         async function initApp() {
-            // 1. Tải ngay lập tức biểu đồ và chỉ báo của mã mặc định SSI không cần chờ
-            loadStock('SSI');
-
-            // 2. Tải song song bảng xếp hạng Stochastic Screener
-            loadStochScreener();
-
-            // 3. Tải song song bảng dữ liệu lượng hóa toàn thị trường
             try {
+                loadStock('SSI');
+                loadStochScreener();
                 const res = await fetch('/api/screener');
-                if (res.ok) {
-                    allScreenerData = await res.json();
-                    allScreenerData.sort((a, b) => {
-                        const decDiff = (b.latest_decile || 5) - (a.latest_decile || 5);
-                        if (decDiff !== 0) return decDiff;
-                        const retDiff = (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
-                        if (retDiff !== 0) return retDiff;
-                        return (b.oos_ic || 0) - (a.oos_ic || 0);
-                    });
-                    renderScreenerFullRows(allScreenerData);
-                }
+                allScreenerData = await res.json();
+                allScreenerData.sort((a, b) => {
+                    const decDiff = (b.latest_decile || 5) - (a.latest_decile || 5);
+                    if (decDiff !== 0) return decDiff;
+                    const retDiff = (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
+                    if (retDiff !== 0) return retDiff;
+                    return (b.oos_ic || 0) - (a.oos_ic || 0);
+                });
+                renderScreenerFullRows(allScreenerData);
             } catch (err) {
-                console.error("Error loading screener table:", err);
+                console.error(err);
             }
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initApp);
-        } else {
-            initApp();
-        }
+        window.onload = initApp;
     </script>
 </body>
 </html>
     """
-
-
-# Pre-warm SSI cache for instant page load
-try:
-    get_stock_analysis("SSI", "dark")
-except Exception as e:
-    pass
 
 if __name__ == "__main__":
     print("="*60)
