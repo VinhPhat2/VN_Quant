@@ -824,7 +824,7 @@ def index_page():
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
     <!-- Plotly.js -->
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -1726,7 +1726,21 @@ function openShareModal() { document.getElementById('shareModal').classList.remo
         }
 
         // Load Stock Data instantly
-        async function loadStock(symbol) {
+                function safeRenderPlotly(containerId, plotData, plotLayout, retries = 15) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            if (window.Plotly && typeof Plotly.react === 'function') {
+                try {
+                    Plotly.react(containerId, plotData, plotLayout, {responsive: true, displayModeBar: false});
+                } catch (e) {
+                    console.error("Plotly render error for " + containerId, e);
+                }
+            } else if (retries > 0) {
+                setTimeout(() => safeRenderPlotly(containerId, plotData, plotLayout, retries - 1), 250);
+            }
+        }
+
+async function loadStock(symbol) {
             symbol = symbol.trim().toUpperCase();
             if (!symbol) return;
             try {
@@ -1758,11 +1772,9 @@ function openShareModal() { document.getElementById('shareModal').classList.remo
                 // Update Chart Title
                 document.getElementById('decileChartTitle').innerText = `1. Biểu Đồ Giá & Phân Vùng Tín Hiệu OOS ${data.symbol} (Thang Đo RdYlGn Decile 1 → ${data.n_deciles})`;
 
-                // Render Exact Plotly Decile Figure from Notebook (RdYlGn colorscale, Decile 1 to n_deciles)
-                Plotly.react('plotlyDecileContainer', data.plotly_decile_fig.data, data.plotly_decile_fig.layout, {responsive: true, displayModeBar: false});
-
-                // Render Technical Indicators Figure
-                Plotly.react('plotlyTechContainer', data.plotly_tech_fig.data, data.plotly_tech_fig.layout, {responsive: true, displayModeBar: false});
+                // Render Plotly Figures safely with retry if CDN is still loading
+                safeRenderPlotly('plotlyDecileContainer', data.plotly_decile_fig.data, data.plotly_decile_fig.layout);
+                safeRenderPlotly('plotlyTechContainer', data.plotly_tech_fig.data, data.plotly_tech_fig.layout);
 
                 // Update Flow Cards
                 let f_sum = data.flow.reduce((acc, x) => acc + x.foreign, 0);
@@ -2387,31 +2399,36 @@ function openShareModal() { document.getElementById('shareModal').classList.remo
         }
 
         async function initApp() {
+            // 1. Tải ngay lập tức biểu đồ và chỉ báo của mã mặc định SSI không cần chờ
+            loadStock('SSI');
+
+            // 2. Tải song song bảng xếp hạng Stochastic Screener
+            loadStochScreener();
+
+            // 3. Tải song song bảng dữ liệu lượng hóa toàn thị trường
             try {
-                loadStochScreener();
                 const res = await fetch('/api/screener');
-                allScreenerData = await res.json();
-                
-                // Mặc định sắp xếp theo Decile dự báo giảm dần (10 -> 1), sau đó theo Lợi nhuận dự báo, sau đó theo IC OOS
-                allScreenerData.sort((a, b) => {
-                    const decDiff = (b.latest_decile || 5) - (a.latest_decile || 5);
-                    if (decDiff !== 0) return decDiff;
-                    const retDiff = (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
-                    if (retDiff !== 0) return retDiff;
-                    return (b.oos_ic || 0) - (a.oos_ic || 0);
-                });
-
-                renderScreenerFullRows(allScreenerData);
-
-                if (allScreenerData.length > 0) {
-                    loadStock('SSI');
+                if (res.ok) {
+                    allScreenerData = await res.json();
+                    allScreenerData.sort((a, b) => {
+                        const decDiff = (b.latest_decile || 5) - (a.latest_decile || 5);
+                        if (decDiff !== 0) return decDiff;
+                        const retDiff = (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
+                        if (retDiff !== 0) return retDiff;
+                        return (b.oos_ic || 0) - (a.oos_ic || 0);
+                    });
+                    renderScreenerFullRows(allScreenerData);
                 }
             } catch (err) {
-                console.error(err);
+                console.error("Error loading screener table:", err);
             }
         }
 
-        window.onload = initApp;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
     </script>
 </body>
 </html>
