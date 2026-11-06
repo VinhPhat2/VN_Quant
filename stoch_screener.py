@@ -94,56 +94,40 @@ def compute_stoch_signals(data_dir=None):
             atr = float(tr.rolling(14).mean().iloc[-1]) if len(tr) >= 14 else float(c_now * 0.03)
 
             # =======================================================
-            # ĐIỀU KIỆN TÍN HIỆU THUẦN TÚY STOCHASTIC (PURE STOCHASTIC)
+            # ĐIỀU KIỆN TÍN HIỆU THUẦN CHỈ BÁO STOCHASTIC CƠ BẢN:
+            # - Tín hiệu Mua: %K cắt lên %D trong vùng 20 - 80
+            # - Tín hiệu Bán: %K cắt xuống %D trong vùng 20 - 80
+            # - Ngoài vùng 20 - 80 có cắt thì không tính
             # =======================================================
-            is_golden_cross = (k_prev <= d_prev) and (k_now > d_now)
-            is_death_cross = (k_prev >= d_prev) and (k_now < d_now)
-            k_diff = k_now - d_now  # Độ phân kỳ giữa K và D
+            is_cross_up = (k_prev <= d_prev) and (k_now > d_now)
+            is_cross_down = (k_prev >= d_prev) and (k_now < d_now)
+            k_diff = k_now - d_now
 
-            if is_golden_cross and (k_now <= 30):
-                # Golden cross trong vùng quá bán -> Điểm mua bắt đáy mạnh nhất
-                signal = "MUA (Golden Cross Quá Bán)"
-                signal_type = "BUY_GOLDEN"
-                status_desc = "K cắt lên D trong vùng quá bán (<=30)"
-                # Điểm số xếp hạng: K càng thấp trong giao cắt thì điểm càng cao
-                score = round(100 - k_now, 2)
-            elif k_now <= 20:
-                # Nằm sâu trong vùng quá bán
-                if is_golden_cross:
-                    signal = "MUA (Đảo Chiều Đáy Stoch)"
-                    signal_type = "BUY_GOLDEN"
-                    status_desc = "K cắt lên D tại vùng đáy (<=20)"
-                    score = round(98 - k_now, 2)
-                else:
-                    signal = "QUÁ BÁN (Vùng Đáy ≤ 20)"
-                    signal_type = "OVERSOLD"
-                    status_desc = f"Quá bán sâu (K={k_now:.1f}), chờ điểm nổ"
-                    score = round(90 - k_now, 2)
-            elif is_golden_cross and (30 < k_now < 70):
-                signal = "MOMENTUM TĂNG (K cắt lên D)"
-                signal_type = "BULLISH"
-                status_desc = "Giao cắt tăng ở vùng trung lập (30-70)"
-                score = round(60 + (k_now / 2), 2)
-            elif k_now >= 80:
-                if is_death_cross:
-                    signal = "BÁN (Death Cross Quá Mua)"
-                    signal_type = "SELL_DEATH"
-                    status_desc = "K cắt xuống D tại đỉnh quá mua (>=80)"
-                    score = 10.0
-                else:
-                    signal = "QUÁ MUA (Vùng Đỉnh ≥ 80)"
-                    signal_type = "OVERBOUGHT"
-                    status_desc = f"Quá mua cao (K={k_now:.1f}), cảnh báo chốt lời"
-                    score = 20.0
-            elif is_death_cross and (k_now >= 65):
-                signal = "CẢNH BÁO BÁN (K cắt xuống D)"
+            if is_cross_up and (20 <= k_now <= 80):
+                signal = "MUA (%K cắt lên %D)"
+                signal_type = "BUY"
+                status_desc = f"%K={k_now:.1f} cắt lên %D={d_now:.1f} (Vùng 20-80)"
+                # Xếp hạng: K càng gần 20 (vừa thoát đáy) điểm càng cao
+                score = round(100 - (k_now - 20) * 0.4, 2)
+            elif is_cross_down and (20 <= k_now <= 80):
+                signal = "BÁN (%K cắt xuống %D)"
                 signal_type = "SELL"
-                status_desc = "Giao cắt giảm ở vùng giá cao"
-                score = 15.0
+                status_desc = f"%K={k_now:.1f} cắt xuống %D={d_now:.1f} (Vùng 20-80)"
+                score = round(30 - (k_now - 20) * 0.2, 2)
+            elif k_now < 20:
+                signal = "QUÁ BÁN (< 20)"
+                signal_type = "OVERSOLD"
+                status_desc = f"Quá bán sâu (K={k_now:.1f} < 20)"
+                score = round(60 - k_now, 2)
+            elif k_now > 80:
+                signal = "QUÁ MUA (> 80)"
+                signal_type = "OVERBOUGHT"
+                status_desc = f"Quá mua cao (K={k_now:.1f} > 80)"
+                score = 10.0
             else:
-                signal = "TRUNG TÍNH (Dao Động)"
+                signal = "THEO DÕI (20 - 80)"
                 signal_type = "NEUTRAL"
-                status_desc = "Dao động trong biên độ 20 - 80"
+                status_desc = f"Dao động bình thường (K={k_now:.1f})"
                 score = 40.0
 
             target_price = c_now + 1.6 * atr if atr > 0 else c_now * 1.08
@@ -176,8 +160,8 @@ def compute_stoch_signals(data_dir=None):
     # =======================================================
     # XẾP HẠNG RANKING CHỈ BÁO STOCHASTIC
     # Ưu tiên:
-    # 1. Các mã Mua Golden Cross & Quá Bán sâu nhất (%K thấp nhất) lên đầu bảng
-    # 2. Xếp theo Score và Stochastic %K tăng dần (K thấp nhất = Quá bán nhất)
+    # 1. Các mã Mua (%K cắt lên %D) xếp lên đầu bảng, ưu tiên K thấp hơn
+    # 2. Xếp theo Score và Turnover
     # =======================================================
     stocks = sorted(stocks, key=lambda x: (-x["score"], x["stoch_k"], -x["turnover_ty"]))
     for idx, s in enumerate(stocks):
@@ -200,9 +184,10 @@ def compute_stoch_signals(data_dir=None):
         regime = "Hưng Phấn / Quá Mua (Cẩn Trọng Rủi Ro)"
         regime_badge = "hung_phan"
 
-    buy_count = len([s for s in stocks if s["signal_type"] == "BUY_GOLDEN"])
-    oversold_count = len([s for s in stocks if s["stoch_k"] <= 20])
-    overbought_count = len([s for s in stocks if s["stoch_k"] >= 80])
+    buy_count = len([s for s in stocks if s["signal_type"] == "BUY"])
+    sell_count = len([s for s in stocks if s["signal_type"] == "SELL"])
+    oversold_count = len([s for s in stocks if s["stoch_k"] < 20])
+    overbought_count = len([s for s in stocks if s["stoch_k"] > 80])
 
     market_breadth = {
         "date": latest_market_date,
@@ -214,6 +199,7 @@ def compute_stoch_signals(data_dir=None):
         "regime": regime,
         "regime_badge": regime_badge,
         "buy_count": buy_count,
+        "sell_count": sell_count,
         "oversold_count": oversold_count,
         "overbought_count": overbought_count
     }
@@ -237,9 +223,10 @@ if __name__ == "__main__":
     res = compute_stoch_signals()
     print("Done! Total stocks scanned:", res["market_breadth"]["total_scanned"])
     print("Market date:", res["market_breadth"]["date"])
-    print("Buy (Golden Cross) count:", res["market_breadth"]["buy_count"])
-    print("Oversold count:", res["market_breadth"]["oversold_count"])
-    print("Overbought count:", res["market_breadth"]["overbought_count"])
+    print("Buy count (K cắt lên D trong 20-80):", res["market_breadth"]["buy_count"])
+    print("Sell count (K cắt xuống D trong 20-80):", res["market_breadth"]["sell_count"])
+    print("Oversold (< 20) count:", res["market_breadth"]["oversold_count"])
+    print("Overbought (> 80) count:", res["market_breadth"]["overbought_count"])
     print("\nTop 5 Ranked Stocks:")
     for s in res["stocks"][:5]:
         print(f"Rank #{s['rank']} | {s['symbol']} | Stoch %K: {s['stoch_k']} | %D: {s['stoch_d']} | Signal: {s['signal']}")

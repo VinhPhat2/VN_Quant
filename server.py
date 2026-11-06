@@ -935,7 +935,7 @@ def index_page():
                             <span class="text-xs text-slate-400 font-mono" id="stochUpdatedDate">Phiên giao dịch mới nhất</span>
                         </div>
                         <h2 class="text-lg md:text-xl font-extrabold tracking-wide text-white mt-1">XẾP HẠNG & BẮN TÍN HIỆU THUẦN CHỈ BÁO STOCHASTIC</h2>
-                        <p class="text-xs text-slate-400 mt-1 max-w-3xl">Hệ thống xếp hạng (Ranking) toàn diện 400+ cổ phiếu HOSE thuần túy theo chỉ báo Stochastic Oscillator (%K=14, %D=3): Điểm giao cắt Golden Cross trong vùng quá bán (≤30), độ sâu quá bán (%K cực tiểu), phân kỳ và cảnh báo quá mua chốt lời.</p>
+                        <p class="text-xs text-slate-400 mt-1 max-w-3xl">Hệ thống lọc & xếp hạng tín hiệu Stochastic Oscillator (20, 3, 3): Tín hiệu Mua (%K cắt lên %D) và Tín hiệu Bán (%K cắt xuống %D) trong vùng 20 - 80, kèm cảnh báo Quá Bán (&lt; 20) và Quá Mua (&gt; 80).</p>
                     </div>
                     <div class="flex items-center space-x-3">
                         <button onclick="loadStochScreener(true)" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition shadow">
@@ -945,27 +945,32 @@ def index_page():
                     </div>
                 </div>
 
-                <!-- Market Breadth Cards -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
-                        <div class="text-xs text-slate-400 uppercase font-mono">Trạng Thái Thị Trường</div>
+                <!-- Market Breadth Cards (5 columns) -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-6">
+                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-3.5">
+                        <div class="text-[11px] text-slate-400 uppercase font-mono">Trạng Thái Thị Trường</div>
                         <div class="text-sm font-bold text-emerald-400 mt-1" id="stochRegime">Đang tải...</div>
-                        <div class="text-xs text-slate-400 mt-1 font-mono" id="stochMa20Pct">--% mã > MA20</div>
+                        <div class="text-[11px] text-slate-400 mt-1 font-mono" id="stochMa20Pct">--% mã > MA20</div>
                     </div>
-                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
-                        <div class="text-xs text-slate-400 uppercase font-mono">Tín Hiệu Mua Golden Cross</div>
+                    <div class="bg-slate-800/80 border border-emerald-500/30 rounded-lg p-3.5">
+                        <div class="text-[11px] text-emerald-400 uppercase font-mono font-bold">Tín Hiệu Mua</div>
                         <div class="text-2xl font-extrabold text-emerald-400 mt-1" id="stochBuyCount">--</div>
-                        <div class="text-xs text-slate-400 mt-1 font-mono">K cắt lên D trong vùng quá bán (≤30)</div>
+                        <div class="text-[11px] text-slate-400 mt-1 font-mono">%K cắt lên %D (20 - 80)</div>
                     </div>
-                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
-                        <div class="text-xs text-slate-400 uppercase font-mono">Vùng Quá Bán (Stoch ≤ 20)</div>
+                    <div class="bg-slate-800/80 border border-rose-500/30 rounded-lg p-3.5">
+                        <div class="text-[11px] text-rose-400 uppercase font-mono font-bold">Tín Hiệu Bán</div>
+                        <div class="text-2xl font-extrabold text-rose-400 mt-1" id="stochSellCount">--</div>
+                        <div class="text-[11px] text-slate-400 mt-1 font-mono">%K cắt xuống %D (20 - 80)</div>
+                    </div>
+                    <div class="bg-slate-800/80 border border-sky-500/30 rounded-lg p-3.5">
+                        <div class="text-[11px] text-sky-400 uppercase font-mono">Vùng Quá Bán (&lt; 20)</div>
                         <div class="text-2xl font-extrabold text-sky-400 mt-1" id="stochOversoldCount">--</div>
-                        <div class="text-xs text-slate-400 mt-1 font-mono">Cổ phiếu chạm đáy ngắn hạn</div>
+                        <div class="text-[11px] text-slate-400 mt-1 font-mono">Cổ phiếu chạm đáy ngắn hạn</div>
                     </div>
-                    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4">
-                        <div class="text-xs text-slate-400 uppercase font-mono">Vùng Quá Mua (Stoch ≥ 80)</div>
-                        <div class="text-2xl font-extrabold text-rose-400 mt-1" id="stochOverboughtCount">--</div>
-                        <div class="text-xs text-slate-400 mt-1 font-mono">Cảnh báo áp lực chốt lời</div>
+                    <div class="bg-slate-800/80 border border-amber-500/30 rounded-lg p-3.5">
+                        <div class="text-[11px] text-amber-400 uppercase font-mono">Vùng Quá Mua (&gt; 80)</div>
+                        <div class="text-2xl font-extrabold text-amber-400 mt-1" id="stochOverboughtCount">--</div>
+                        <div class="text-[11px] text-slate-400 mt-1 font-mono">Cảnh báo áp lực chốt lời</div>
                     </div>
                 </div>
             </div>
@@ -1000,11 +1005,11 @@ def index_page():
                         </div>
                         <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-mono">
                             <button onclick="setStochFilter('all')" id="btnStochAll" class="stoch-filter-btn px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/50">Tất Cả</button>
-                            <button onclick="setStochFilter('buy')" id="btnStochBuy" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">🔥 Mua Golden Cross</button>
-                            <button onclick="setStochFilter('oversold')" id="btnStochOversold" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">⚡ Quá Bán (≤20)</button>
-                            <button onclick="setStochFilter('bullish')" id="btnStochBullish" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">🚀 Tăng</button>
-                            <button onclick="setStochFilter('overbought')" id="btnStochOverbought" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">⚠️ Quá Mua (≥80)</button>
-                            <button onclick="setStochFilter('liquidity')" id="btnStochLiquidity" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">💎 GTGD > 5 Tỷ</button>
+                            <button onclick="setStochFilter('buy')" id="btnStochBuy" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">🔥 Tín Hiệu Mua (%K cắt lên %D)</button>
+                            <button onclick="setStochFilter('sell')" id="btnStochSell" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-rose-400">🔻 Tín Hiệu Bán (%K cắt xuống %D)</button>
+                            <button onclick="setStochFilter('oversold')" id="btnStochOversold" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-sky-400">⚡ Quá Bán (&lt;20)</button>
+                            <button onclick="setStochFilter('overbought')" id="btnStochOverbought" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-amber-400">⚠️ Quá Mua (&gt;80)</button>
+                            <button onclick="setStochFilter('liquidity')" id="btnStochLiquidity" class="stoch-filter-btn px-2.5 py-1 rounded text-slate-600 dark:text-slate-400 hover:text-emerald-400">💎 GTGD &gt; 5 Tỷ</button>
                         </div>
                     </div>
                 </div>
@@ -1470,6 +1475,9 @@ def index_page():
             if (document.getElementById('stochBuyCount')) {
                 document.getElementById('stochBuyCount').innerText = mb.buy_count || 0;
             }
+            if (document.getElementById('stochSellCount')) {
+                document.getElementById('stochSellCount').innerText = mb.sell_count || 0;
+            }
             if (document.getElementById('stochOversoldCount')) {
                 document.getElementById('stochOversoldCount').innerText = mb.oversold_count || 0;
             }
@@ -1477,19 +1485,19 @@ def index_page():
                 document.getElementById('stochOverboughtCount').innerText = mb.overbought_count || 0;
             }
 
-            // Render Signal Feed Cards (Top Golden Cross / Oversold signals)
+            // Render Signal Feed Cards (Top Mua & Ban 20-80)
             const feed = document.getElementById('stochSignalFeed');
             if (feed) {
-                const candidates = (stochScreenerData.stocks || []).filter(s => s.signal_type === 'BUY_GOLDEN' || (s.signal_type === 'OVERSOLD' && s.stoch_k <= 15));
+                const candidates = (stochScreenerData.stocks || []).filter(s => s.signal_type === 'BUY' || s.signal_type === 'SELL');
                 if (candidates.length === 0) {
-                    feed.innerHTML = '<div class="text-center py-8 text-slate-400 font-mono text-sm col-span-full">Hôm nay không có mã nào xuất hiện Golden Cross trong vùng quá bán sâu. Thị trường đang trong pha giằng co hoặc tích lũy.</div>';
+                    feed.innerHTML = '<div class="text-center py-8 text-slate-400 font-mono text-sm col-span-full">Hôm nay không có mã nào xuất hiện tín hiệu giao cắt Mua/Bán trong vùng 20 - 80.</div>';
                 } else {
                     feed.innerHTML = candidates.slice(0, 6).map(s => {
-                        const isGolden = s.signal_type === 'BUY_GOLDEN';
-                        const badgeColor = isGolden ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'bg-sky-500/20 text-sky-400 border-sky-500/50';
-                        const kVal = s.stoch_k;
+                        const isBuy = s.signal_type === 'BUY';
+                        const badgeColor = isBuy ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'bg-rose-500/20 text-rose-400 border-rose-500/50';
+                        const hoverBorder = isBuy ? 'hover:border-emerald-500/50' : 'hover:border-rose-500/50';
                         return `
-                            <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark hover:border-emerald-500/50 rounded-xl p-4 transition shadow-sm hover:shadow-md flex flex-col justify-between">
+                            <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark ${hoverBorder} rounded-xl p-4 transition shadow-sm hover:shadow-md flex flex-col justify-between">
                                 <div>
                                     <div class="flex justify-between items-start">
                                         <div>
@@ -1506,7 +1514,7 @@ def index_page():
                                     </div>
                                     
                                     <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs font-mono">
-                                        <div><span class="text-slate-400">Stoch %K (20,3):</span> <span class="font-extrabold text-emerald-400">${s.stoch_k}</span></div>
+                                        <div><span class="text-slate-400">Stoch %K (20,3):</span> <span class="font-extrabold ${isBuy ? 'text-emerald-400' : 'text-rose-400'}">${s.stoch_k}</span></div>
                                         <div><span class="text-slate-400">Stoch %D (3):</span> <span class="font-bold text-amber-400">${s.stoch_d}</span></div>
                                         <div><span class="text-slate-400">Stoch RSI %K:</span> <span class="font-extrabold text-sky-400">${s.stoch_rsi_k ?? '--'}</span></div>
                                         <div><span class="text-slate-400">Stoch RSI %D:</span> <span class="font-bold text-amber-400">${s.stoch_rsi_d ?? '--'}</span></div>
@@ -1514,11 +1522,11 @@ def index_page():
                                         <div><span class="text-slate-400">GTGD:</span> <span class="font-bold text-slate-200">${s.turnover_ty} Tỷ</span></div>
                                     </div>
                                     <div class="mt-2 text-[11px] font-mono text-slate-400">
-                                        Trạng thái: <span class="text-emerald-300 font-semibold">${s.status_desc}</span>
+                                        Trạng thái: <span class="${isBuy ? 'text-emerald-300' : 'text-rose-300'} font-semibold">${s.status_desc}</span>
                                     </div>
                                 </div>
                                 <div class="mt-4 pt-2">
-                                    <button onclick="quickSelectStock('${s.symbol}')" class="w-full py-1.5 text-xs font-bold font-mono rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/40 transition">
+                                    <button onclick="quickSelectStock('${s.symbol}')" class="w-full py-1.5 text-xs font-bold font-mono rounded-lg ${isBuy ? 'bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/40' : 'bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/40'} transition">
                                         Xem Biểu Đồ Kỹ Thuật Mã ${s.symbol} →
                                     </button>
                                 </div>
@@ -1540,8 +1548,8 @@ def index_page():
             const activeBtnMap = {
                 'all': 'btnStochAll',
                 'buy': 'btnStochBuy',
+                'sell': 'btnStochSell',
                 'oversold': 'btnStochOversold',
-                'bullish': 'btnStochBullish',
                 'overbought': 'btnStochOverbought',
                 'liquidity': 'btnStochLiquidity'
             };
@@ -1558,13 +1566,13 @@ def index_page():
             let items = [...stochScreenerData.stocks];
 
             if (currentStochFilter === 'buy') {
-                items = items.filter(s => s.signal_type === 'BUY_GOLDEN');
+                items = items.filter(s => s.signal_type === 'BUY');
+            } else if (currentStochFilter === 'sell') {
+                items = items.filter(s => s.signal_type === 'SELL');
             } else if (currentStochFilter === 'oversold') {
-                items = items.filter(s => s.stoch_k <= 20);
-            } else if (currentStochFilter === 'bullish') {
-                items = items.filter(s => s.signal_type === 'BULLISH');
+                items = items.filter(s => s.stoch_k < 20);
             } else if (currentStochFilter === 'overbought') {
-                items = items.filter(s => s.stoch_k >= 80);
+                items = items.filter(s => s.stoch_k > 80);
             } else if (currentStochFilter === 'liquidity') {
                 items = items.filter(s => s.turnover_ty >= 5.0);
             }
@@ -1583,11 +1591,10 @@ def index_page():
 
             tbody.innerHTML = items.map(s => {
                 let badgeClass = 'bg-slate-800 text-slate-400 border-slate-700';
-                if (s.signal_type === 'BUY_GOLDEN') badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 font-bold';
+                if (s.signal_type === 'BUY') badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 font-bold';
+                else if (s.signal_type === 'SELL') badgeClass = 'bg-rose-500/20 text-rose-400 border-rose-500/50 font-bold';
                 else if (s.signal_type === 'OVERSOLD') badgeClass = 'bg-sky-500/20 text-sky-400 border-sky-500/40 font-bold';
-                else if (s.signal_type === 'BULLISH') badgeClass = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
-                else if (s.signal_type === 'OVERBOUGHT') badgeClass = 'bg-rose-500/20 text-rose-400 border-rose-500/40 font-bold';
-                else if (s.signal_type === 'SELL_DEATH' || s.signal_type === 'SELL') badgeClass = 'bg-red-500/20 text-red-400 border-red-500/50 font-bold';
+                else if (s.signal_type === 'OVERBOUGHT') badgeClass = 'bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold';
 
                 const kVal = Math.min(Math.max(s.stoch_k, 0), 100);
 
