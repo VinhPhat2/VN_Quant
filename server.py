@@ -1532,6 +1532,9 @@ def index_page():
             if (tabId === 'tab-stoch-screener') {
                 if (!stochScreenerData) loadStochScreener();
             }
+            if (tabId === 'tab-flow' && currentStockData && currentStockData.flow) {
+                renderFlowChart(currentStockData.flow);
+            }
             if (tabId === 'tab-sectors') {
                 renderSectorBreadth();
             }
@@ -1612,6 +1615,68 @@ def index_page():
                 console.error(err);
             }
         }
+
+        // Render 4-Group Investor Flow Cumulative Chart
+        function renderFlowChart(flowData) {
+            if (!flowData || flowData.length === 0) return;
+            const canvas = document.getElementById('flowChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (flowChartInstance) flowChartInstance.destroy();
+
+            const labels = flowData.map(x => x.time);
+            let cumF = 0, cumP = 0, cumInst = 0, cumInd = 0;
+            const seriesF = [], seriesP = [], seriesInst = [], seriesInd = [];
+            flowData.forEach(x => {
+                cumF += (x.foreign || 0); seriesF.push(Math.round(cumF * 100) / 100);
+                cumP += (x.prop || 0); seriesP.push(Math.round(cumP * 100) / 100);
+                if (x.local_inst !== null && x.local_inst !== undefined && !isNaN(x.local_inst)) {
+                    cumInst += x.local_inst;
+                    seriesInst.push(Math.round(cumInst * 100) / 100);
+                } else {
+                    seriesInst.push(null);
+                }
+                if (x.local_ind !== null && x.local_ind !== undefined && !isNaN(x.local_ind)) {
+                    cumInd += x.local_ind;
+                    seriesInd.push(Math.round(cumInd * 100) / 100);
+                } else {
+                    seriesInd.push(null);
+                }
+            });
+
+            const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            const tickColor = isDarkMode ? '#94A3B8' : '#64748B';
+
+            flowChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Khối Ngoại', data: seriesF, borderColor: '#00E5FF', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: true },
+                        { label: 'Tự Doanh', data: seriesP, borderColor: '#10B981', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: true },
+                        { label: 'Tổ Chức Nội', data: seriesInst, borderColor: '#A855F7', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: false },
+                        { label: 'Cá Nhân Nội', data: seriesInd, borderColor: '#F59E0B', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: false },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 12 } } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: tickColor, maxTicksLimit: 10 } },
+                        y: { 
+                            grid: { color: gridColor }, 
+                            ticks: { color: tickColor, callback: v => v + ' Tỷ' },
+                            title: { display: true, text: 'Giá Trị Lũy Kế (Tỷ VNĐ)', color: tickColor }
+                        }
+                    }
+                }
+            });
+        }
+
 
                 // ====================================================================
         // TAB: SỨC MẠNH NHÓM NGÀNH & CHI TIẾT STOCH THEO NGÀNH (BẢN MỚI)
