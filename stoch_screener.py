@@ -37,6 +37,7 @@ def compute_stoch_signals(data_dir=None):
             hi = df['CAO'].astype(float)
             lo = df['THẤP'].astype(float)
             val = df['TỔNG GIÁ TRỊ'].astype(float)
+            vol = df['TỔNG KHỐI LƯỢNG'].astype(float)
             
             # Stochastic Oscillator (20, 3, 3)
             low20 = lo.rolling(20).min()
@@ -72,6 +73,10 @@ def compute_stoch_signals(data_dir=None):
             c_prev = float(cl.iloc[-2]) if len(cl) > 1 else c_now
             change_pct = ((c_now - c_prev) / c_prev * 100) if c_prev else 0
             turnover_ty = val.iloc[-1] / 1e9 if pd.notna(val.iloc[-1]) else 0
+            
+            vol_now = float(vol.iloc[-1]) if pd.notna(vol.iloc[-1]) else 0.0
+            vol20_mean = float(vol.rolling(20, min_periods=5).mean().iloc[-1]) if len(vol) >= 5 else vol_now
+            vol_surge = round(float(vol_now / (vol20_mean + 1e-6)), 2) if vol20_mean > 0 else 1.0
             
             # MA20 để đo lường trạng thái thị trường
             ma20 = cl.rolling(20, min_periods=5).mean().iloc[-1]
@@ -140,6 +145,9 @@ def compute_stoch_signals(data_dir=None):
                 "price": c_now,
                 "change_pct": round(change_pct, 2),
                 "turnover_ty": round(turnover_ty, 2),
+                "vol_now": int(vol_now),
+                "vol20_mean": int(vol20_mean),
+                "vol_surge": vol_surge,
                 "stoch_k": round(k_now, 1),
                 "stoch_d": round(d_now, 1),
                 "stoch_rsi_k": srsi_k_val,
@@ -201,7 +209,9 @@ def compute_stoch_signals(data_dir=None):
         "buy_count": buy_count,
         "sell_count": sell_count,
         "oversold_count": oversold_count,
-        "overbought_count": overbought_count
+        "overbought_count": overbought_count,
+        "vol_spike_count": len([s for s in stocks if s.get("vol_surge", 1.0) >= 1.5 and s.get("turnover_ty", 0) >= 1.0]),
+        "vol_spike_buy_count": len([s for s in stocks if s.get("vol_surge", 1.0) >= 1.2 and s.get("signal_type") == "BUY"])
     }
 
     result = {

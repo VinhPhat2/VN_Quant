@@ -1071,33 +1071,106 @@ def index_page():
             </div>
         </div>
 
-        <!-- TAB 4: SECTOR BREADTH & MOMENTUM (QUANT DECILE BASED) -->
+                <!-- TAB 4: SỨC MẠNH NHÓM NGÀNH (STOCHASTIC SECTOR BREADTH & MOMENTUM) -->
         <div id="tab-sectors" class="tab-content hidden space-y-6">
+            <!-- Summary Stats for Sectors -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Ngành Dẫn Đầu Tín Hiệu Mua</span>
+                    <div class="text-base font-extrabold text-emerald-400 mt-1 truncate" id="sectorTopBuy">--</div>
+                    <div class="text-[11px] text-slate-400 mt-1 font-mono" id="sectorTopBuyPct">--% mã có tín hiệu Mua</div>
+                </div>
+                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Ngành Xung Lực Tăng Cao Nhất</span>
+                    <div class="text-base font-extrabold text-sky-400 mt-1 truncate" id="sectorTopBullish">--</div>
+                    <div class="text-[11px] text-slate-400 mt-1 font-mono" id="sectorTopBullishPct">--% mã Bullish (%K &gt; %D)</div>
+                </div>
+                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Ngành Tích Lũy Đáy Quá Bán</span>
+                    <div class="text-base font-extrabold text-amber-400 mt-1 truncate" id="sectorTopOversold">--</div>
+                    <div class="text-[11px] text-slate-400 mt-1 font-mono" id="sectorTopOversoldPct">Nhiều mã vùng gom &lt; 20</div>
+                </div>
+                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Tổng Số Nhóm Ngành</span>
+                    <div class="text-2xl font-extrabold text-purple-400 mt-1" id="sectorTotalCount">14</div>
+                    <div class="text-[11px] text-slate-400 mt-1 font-mono">Phân loại chuẩn HOSE</div>
+                </div>
+            </div>
+
+            <!-- Chart & Sector Table -->
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-6 shadow-sm space-y-6">
                 <div class="flex flex-wrap justify-between items-center gap-2">
                     <div>
-                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Độ Rộng Dòng Tiền & Sức Mạnh Nhóm Ngành (Sector Breadth)</h3>
-                        <p class="text-xs text-slate-500 font-mono mt-0.5">Xếp hạng theo % mã có Tín hiệu Mua (Decile 8-10) và Lợi nhuận dự báo T+10 trung bình</p>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Độ Rộng Dòng Tiền &amp; Sức Mạnh Nhóm Ngành Thuần Chỉ Báo Stochastic</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">Xếp hạng theo % mã có Tín hiệu Mua (%K cắt lên %D trong 20-80) và vị thế Stoch %K trung bình ngành</p>
                     </div>
-                    <span class="text-xs text-emerald-500 font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30">Dữ liệu phân vùng Decile lượng hóa</span>
+                    <span class="text-xs text-emerald-500 font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30">Phoenix Engine • 405 Mã HOSE</span>
                 </div>
                 <div class="h-80"><canvas id="sectorChart"></canvas></div>
                 <div id="sectorTableContainer" class="overflow-x-auto rounded-lg border border-slate-200 dark:border-brand-borderDark"></div>
             </div>
+
+            <!-- DRILL-DOWN: STOCH THEO TỪNG NGÀNH -->
+            <div id="sectorDrillDownSection" class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-6 shadow-sm space-y-4">
+                <div class="flex flex-wrap justify-between items-center gap-2 pb-2 border-b border-slate-200 dark:border-brand-borderDark">
+                    <div>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider flex items-center space-x-2">
+                            <span>📊</span><span id="drillDownSectorTitle">Chi Tiết Chỉ Báo Stochastic Cổ Phiếu Theo Ngành</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5" id="drillDownSectorSubtitle">Chọn một nhóm ngành bên dưới hoặc click trực tiếp vào hàng nhóm ngành ở bảng trên để xem toàn bộ cổ phiếu</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="sectorDrillSearch" oninput="renderSectorDrillDownStocks()" placeholder="Tìm mã trong ngành..." class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500 w-44">
+                    </div>
+                </div>
+
+                <!-- Quick Sector Selection Buttons -->
+                <div class="flex flex-wrap gap-1.5" id="sectorPillsContainer"></div>
+
+                <!-- Stocks Table for Selected Sector -->
+                <div id="sectorStocksTableContainer" class="overflow-x-auto rounded-lg border border-slate-200 dark:border-brand-borderDark mt-3"></div>
+            </div>
         </div>
 
-        <!-- TAB 5: ALPHA FLOW SCANNER (FORMERLY RADAR GOM ĐỘT BIẾN) -->
+        <!-- TAB 5: BỘ LỌC DÒNG TIỀN ĐỘT BIẾN (STOCHASTIC x VOLUME SURGE) -->
         <div id="tab-spikes" class="tab-content hidden space-y-6">
+            <!-- Summary Stats for Spikes -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Bùng Nổ Khối Lượng Cao Nhất</span>
+                    <div class="text-base font-extrabold text-emerald-400 mt-1 truncate" id="spikeTopVol">--</div>
+                    <div class="text-[11px] text-slate-400 mt-1 font-mono" id="spikeTopVolRatio">--x Khối lượng TB 20 phiên</div>
+                </div>
+                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Mã Đột Biến KL (&gt; 1.5x TB20P)</span>
+                    <div class="text-2xl font-extrabold text-sky-400 mt-1" id="spikeTotalCount">--</div>
+                    <div class="text-[11px] text-slate-400 mt-1 font-mono">Thanh khoản &gt; 1 Tỷ VNĐ</div>
+                </div>
+                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Đột Biến Đi Kèm Tín Hiệu Mua</span>
+                    <div class="text-2xl font-extrabold text-emerald-400 mt-1" id="spikeBuyCount">--</div>
+                    <div class="text-[11px] text-slate-400 mt-1 font-mono">Vol tăng + %K cắt lên %D (20-80)</div>
+                </div>
+                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Dòng Tiền Bắt Đáy Quá Bán</span>
+                    <div class="text-2xl font-extrabold text-amber-400 mt-1" id="spikeOversoldCount">--</div>
+                    <div class="text-[11px] text-slate-400 mt-1 font-mono">Vol tăng ở vùng Stoch &lt; 30</div>
+                </div>
+            </div>
+
             <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-wrap justify-between items-center gap-2">
                     <div>
-                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Bộ Lọc Dòng Tiền Đột Biến & Tín Hiệu Mua Alpha (Alpha Flow Scanner)</h3>
-                        <p class="text-xs text-slate-500 font-mono mt-0.5">Sàng lọc cổ phiếu có tín hiệu dự báo Mua (Decile 8-10) kết hợp mô hình có độ uy tín cao (IC OOS ≥ 0.10)</p>
+                        <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider">Bộ Lọc Dòng Tiền Đột Biến &amp; Tín Hiệu Stochastic (Volume Surge &amp; Momentum)</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">Sàng lọc cổ phiếu có dòng tiền lớn bùng nổ (xVol ≥ 1.2x - 5.0x TB 20 phiên) kết hợp điểm giao cắt Stochastic</p>
                     </div>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <span class="text-xs text-slate-400 font-mono">Chế độ lọc:</span>
-                        <button id="btnSpikesTop" onclick="renderSpikesRadar('buy_top')" class="px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50">Top Decile 9-10</button>
-                        <button id="btnSpikesAll" onclick="renderSpikesRadar('all_signals')" class="px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Tất Cả Tín Hiệu Mua</button>
+                        <button id="btnSpikeBuy" onclick="setSpikesFilter('buy')" class="spikes-filter-btn px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold">🔥 Đột Biến + Mua (%K cắt %D)</button>
+                        <button id="btnSpikeTopVol" onclick="setSpikesFilter('top_vol')" class="spikes-filter-btn px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">🚀 Top xVol Cao Nhất</button>
+                        <button id="btnSpikeOversold" onclick="setSpikesFilter('oversold')" class="spikes-filter-btn px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">💎 Bắt Đáy Quá Bán (&lt;35)</button>
+                        <button id="btnSpikeLiquidity" onclick="setSpikesFilter('liquidity')" class="spikes-filter-btn px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">⚡ GTGD &gt; 10 Tỷ + Bullish</button>
+                        <button id="btnSpikeSell" onclick="setSpikesFilter('sell')" class="spikes-filter-btn px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">🔻 Xả Hàng Đột Biến</button>
                     </div>
                 </div>
                 <div id="spikesTableContainer" class="overflow-x-auto rounded-lg border border-slate-200 dark:border-brand-borderDark"></div>
@@ -1335,6 +1408,8 @@ def index_page():
 
             // Render Table
             applyStochFilter();
+            renderSectorBreadth();
+            renderSpikesRadar();
         }
 
         function setStochFilter(filter) {
@@ -1538,44 +1613,92 @@ def index_page():
             }
         }
 
-        // Render Sector Breadth (Quant Decile & Forward Return Based)
-        function renderSectorBreadth() {
-            if (allScreenerData.length === 0) return;
-            const sectorStats = {};
-            allScreenerData.forEach(d => {
-                const sec = d.sector || 'Khác / Sản xuất';
-                if (!sectorStats[sec]) {
-                    sectorStats[sec] = { 
-                        count: 0, 
-                        total_score: 0, 
-                        total_ic: 0, 
-                        total_decile: 0, 
-                        total_pred_ret: 0,
-                        buy_count: 0, 
-                        symbols: [] 
+                // ====================================================================
+        // TAB: SỨC MẠNH NHÓM NGÀNH & CHI TIẾT STOCH THEO NGÀNH (BẢN MỚI)
+        // ====================================================================
+        let currentSelectedSector = 'Tất Cả';
+        let sectorAggregatedData = {};
+
+        async function renderSectorBreadth() {
+            if (!stochScreenerData || !stochScreenerData.stocks) {
+                await loadStochScreener();
+            }
+            if (!stochScreenerData || !stochScreenerData.stocks) return;
+
+            const stocks = stochScreenerData.stocks;
+            sectorAggregatedData = {};
+
+            stocks.forEach(s => {
+                const sec = s.sector || 'Khác / Sản xuất';
+                if (!sectorAggregatedData[sec]) {
+                    sectorAggregatedData[sec] = {
+                        name: sec,
+                        count: 0,
+                        buy_count: 0,
+                        bullish_count: 0,
+                        oversold_count: 0,
+                        overbought_count: 0,
+                        total_k: 0,
+                        total_d: 0,
+                        total_val: 0,
+                        stocks: []
                     };
                 }
-                sectorStats[sec].count++;
-                sectorStats[sec].total_score += (d.score || 0);
-                sectorStats[sec].total_ic += (d.oos_ic || 0);
-                const dec = d.latest_decile || 5;
-                sectorStats[sec].total_decile += dec;
-                sectorStats[sec].total_pred_ret += (d.latest_pred_ret || 0);
-                if (dec >= 8) sectorStats[sec].buy_count++;
-                sectorStats[sec].symbols.push(d);
+                const g = sectorAggregatedData[sec];
+                g.count++;
+                if (s.signal_type === 'BUY') g.buy_count++;
+                if (s.stoch_k > s.stoch_d) g.bullish_count++;
+                if (s.stoch_k < 20) g.oversold_count++;
+                if (s.stoch_k > 80) g.overbought_count++;
+                g.total_k += (s.stoch_k || 0);
+                g.total_d += (s.stoch_d || 0);
+                g.total_val += (s.turnover_ty || 0);
+                g.stocks.push(s);
             });
 
-            // Sắp xếp ngành theo: % mã có tín hiệu Mua (Decile 8-10), sau đó theo Lợi nhuận dự báo TB
-            const labels = Object.keys(sectorStats).sort((a, b) => {
-                const ratioA = sectorStats[a].buy_count / sectorStats[a].count;
-                const ratioB = sectorStats[b].buy_count / sectorStats[b].count;
-                if (ratioB !== ratioA) return ratioB - ratioA;
-                return (sectorStats[b].total_pred_ret / sectorStats[b].count) - (sectorStats[a].total_pred_ret / sectorStats[a].count);
+            // Sắp xếp các ngành theo % Tín hiệu Mua, sau đó theo % Bullish
+            const secKeys = Object.keys(sectorAggregatedData).sort((a, b) => {
+                const rA = sectorAggregatedData[a].buy_count / sectorAggregatedData[a].count;
+                const rB = sectorAggregatedData[b].buy_count / sectorAggregatedData[b].count;
+                if (rB !== rA) return rB - rA;
+                return (sectorAggregatedData[b].bullish_count / sectorAggregatedData[b].count) - (sectorAggregatedData[a].bullish_count / sectorAggregatedData[a].count);
             });
 
-            const buyRatios = labels.map(s => parseFloat(((sectorStats[s].buy_count / sectorStats[s].count) * 100).toFixed(1)));
-            const avgPredRets = labels.map(s => parseFloat((sectorStats[s].total_pred_ret / sectorStats[s].count).toFixed(2)));
-            const barColors = buyRatios.map(r => r >= 40 ? '#10B981' : (r >= 25 ? '#00E5FF' : (r >= 15 ? '#F59E0B' : '#64748B')));
+            // Update Summary KPI Cards
+            if (secKeys.length > 0) {
+                // Top Buy Sector
+                const topBuySec = secKeys[0];
+                const topBuyPct = ((sectorAggregatedData[topBuySec].buy_count / sectorAggregatedData[topBuySec].count) * 100).toFixed(1);
+                const elTopBuy = document.getElementById('sectorTopBuy');
+                const elTopBuyPct = document.getElementById('sectorTopBuyPct');
+                if (elTopBuy) elTopBuy.innerText = topBuySec;
+                if (elTopBuyPct) elTopBuyPct.innerText = `${topBuyPct}% mã có tín hiệu Mua (${sectorAggregatedData[topBuySec].buy_count}/${sectorAggregatedData[topBuySec].count} mã)`;
+
+                // Top Bullish Sector
+                const secByBull = [...secKeys].sort((a, b) => (sectorAggregatedData[b].bullish_count / sectorAggregatedData[b].count) - (sectorAggregatedData[a].bullish_count / sectorAggregatedData[a].count));
+                const topBullSec = secByBull[0];
+                const topBullPct = ((sectorAggregatedData[topBullSec].bullish_count / sectorAggregatedData[topBullSec].count) * 100).toFixed(1);
+                const elTopBull = document.getElementById('sectorTopBullish');
+                const elTopBullPct = document.getElementById('sectorTopBullishPct');
+                if (elTopBull) elTopBull.innerText = topBullSec;
+                if (elTopBullPct) elTopBullPct.innerText = `${topBullPct}% mã Bullish (%K > %D)`;
+
+                // Top Oversold Sector
+                const secByOversold = [...secKeys].sort((a, b) => sectorAggregatedData[b].oversold_count - sectorAggregatedData[a].oversold_count);
+                const topOsSec = secByOversold[0];
+                const elTopOs = document.getElementById('sectorTopOversold');
+                const elTopOsPct = document.getElementById('sectorTopOversoldPct');
+                if (elTopOs) elTopOs.innerText = topOsSec;
+                if (elTopOsPct) elTopOsPct.innerText = `${sectorAggregatedData[topOsSec].oversold_count} mã chạm đáy gom (<20)`;
+
+                const elTotal = document.getElementById('sectorTotalCount');
+                if (elTotal) elTotal.innerText = secKeys.length;
+            }
+
+            // Render Chart.js
+            const buyRatios = secKeys.map(s => parseFloat(((sectorAggregatedData[s].buy_count / sectorAggregatedData[s].count) * 100).toFixed(1)));
+            const avgKList = secKeys.map(s => parseFloat((sectorAggregatedData[s].total_k / sectorAggregatedData[s].count).toFixed(1)));
+            const barColors = buyRatios.map(r => r >= 20 ? '#10B981' : (r >= 10 ? '#00E5FF' : (r > 0 ? '#F59E0B' : '#475569')));
 
             const ctx = document.getElementById('sectorChart').getContext('2d');
             if (sectorChartInstance) sectorChartInstance.destroy();
@@ -1586,18 +1709,18 @@ def index_page():
             sectorChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: secKeys,
                     datasets: [
-                        { 
-                            label: 'Tỷ Lệ Mã Có Tín Hiệu Mua (Decile 8-10) %', 
-                            data: buyRatios, 
-                            backgroundColor: barColors, 
+                        {
+                            label: '% Mã Có Tín Hiệu Mua (%K cắt lên %D)',
+                            data: buyRatios,
+                            backgroundColor: barColors,
                             borderRadius: 4,
                             yAxisID: 'y'
                         },
-                        { 
-                            label: 'Lợi Nhuận Dự Báo T+10 TB (%)', 
-                            data: avgPredRets, 
+                        {
+                            label: 'Vị Thế Động Lượng Stoch %K Trung Bình',
+                            data: avgKList,
                             type: 'line',
                             borderColor: '#A855F7',
                             backgroundColor: '#A855F7',
@@ -1608,18 +1731,19 @@ def index_page():
                     ]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'top', labels: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 12 } } },
                         tooltip: {
                             callbacks: {
                                 label: ctx => {
-                                    const sec = labels[ctx.dataIndex];
-                                    const info = sectorStats[sec];
+                                    const sec = secKeys[ctx.dataIndex];
+                                    const info = sectorAggregatedData[sec];
                                     if (ctx.datasetIndex === 0) {
                                         return `% Tín hiệu Mua: ${ctx.raw}% (${info.buy_count}/${info.count} mã)`;
                                     } else {
-                                        return `Dự báo LN T+10 TB: ${ctx.raw}%`;
+                                        return `Stoch %K Trung Bình: ${ctx.raw} (Đáy gom <30 | Đỉnh >70)`;
                                     }
                                 }
                             }
@@ -1627,131 +1751,373 @@ def index_page():
                     },
                     scales: {
                         x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 11 } } },
-                        y: { 
-                            min: 0, max: 100, 
-                            title: { display: true, text: '% Mã Tín Hiệu Mua (Decile 8-10)', color: tickColor }, 
-                            grid: { color: gridColor }, 
-                            ticks: { color: tickColor, callback: v => v + '%' } 
+                        y: {
+                            min: 0, max: 100,
+                            title: { display: true, text: '% Mã Tín Hiệu Mua', color: tickColor },
+                            grid: { color: gridColor },
+                            ticks: { color: tickColor, callback: v => v + '%' }
                         },
-                        y1: { 
+                        y1: {
+                            min: 0, max: 100,
                             position: 'right',
-                            title: { display: true, text: 'Dự Báo LN TB (%)', color: '#A855F7' }, 
-                            grid: { drawOnChartArea: false }, 
-                            ticks: { color: '#A855F7', callback: v => v + '%' } 
+                            title: { display: true, text: 'Stoch %K TB', color: '#A855F7' },
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#A855F7' }
                         }
                     }
                 }
             });
 
+            // Render Sector Table
             const container = document.getElementById('sectorTableContainer');
             container.innerHTML = `
             <table class="w-full text-left border-collapse text-xs font-mono">
                 <thead class="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 uppercase">
                     <tr>
                         <th class="p-3">Nhóm Ngành</th>
-                        <th class="p-3 text-right">Số Lượng Mã</th>
-                        <th class="p-3 text-right">% Tín Hiệu Mua (D8-10)</th>
-                        <th class="p-3 text-right">Decile TB (1-10)</th>
-                        <th class="p-3 text-right">Dự Báo LN T+10 TB</th>
-                        <th class="p-3 text-right">Độ Uy Tín Mô Hình (IC OOS TB)</th>
-                        <th class="p-3">Mã Dẫn Đầu Tín Hiệu</th>
+                        <th class="p-3 text-right">Số Mã</th>
+                        <th class="p-3 text-right">% Tín Hiệu Mua</th>
+                        <th class="p-3 text-right">% Bullish (%K &gt; %D)</th>
+                        <th class="p-3 text-right">Quá Bán (&lt;20)</th>
+                        <th class="p-3 text-right">Quá Mua (&gt;80)</th>
+                        <th class="p-3 text-right">Stoch %K TB</th>
+                        <th class="p-3">Mã Nổi Bật Nhất</th>
+                        <th class="p-3 text-center">Chi Tiết Ngành</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                    ${labels.map(sec => {
-                        const info = sectorStats[sec];
-                        const sortedSyms = [...info.symbols].sort((a, b) => {
-                            if ((b.latest_decile || 5) !== (a.latest_decile || 5)) return (b.latest_decile || 5) - (a.latest_decile || 5);
-                            return (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
+                    ${secKeys.map(sec => {
+                        const g = sectorAggregatedData[sec];
+                        const buyPct = ((g.buy_count / g.count) * 100).toFixed(1);
+                        const bullPct = ((g.bullish_count / g.count) * 100).toFixed(1);
+                        const avgK = (g.total_k / g.count).toFixed(1);
+
+                        // Find best stock in sector
+                        const sortedSyms = [...g.stocks].sort((a, b) => {
+                            const isBuyA = a.signal_type === 'BUY' ? 1 : 0;
+                            const isBuyB = b.signal_type === 'BUY' ? 1 : 0;
+                            if (isBuyB !== isBuyA) return isBuyB - isBuyA;
+                            return (b.score || 0) - (a.score || 0);
                         });
-                        const topSymObj = sortedSyms[0];
-                        const topSym = topSymObj?.symbol || '-';
-                        const topDecile = topSymObj?.latest_decile || 5;
-                        const buyRatio = ((info.buy_count / info.count) * 100).toFixed(1);
-                        const avgDec = (info.total_decile / info.count).toFixed(1);
-                        const avgPred = (info.total_pred_ret / info.count).toFixed(2);
-                        const avgIC = (info.total_ic / info.count).toFixed(3);
+                        const topS = sortedSyms[0] || {};
+                        const isBuyTop = topS.signal_type === 'BUY';
+
                         return `
-                        <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/80">
-                            <td class="p-3 font-bold text-slate-900 dark:text-white">${sec}</td>
-                            <td class="p-3 text-right text-slate-400">${info.count}</td>
-                            <td class="p-3 text-right font-bold ${buyRatio >= 30 ? 'text-emerald-500' : 'text-slate-300'}">${buyRatio}%</td>
-                            <td class="p-3 text-right font-semibold ${avgDec >= 6 ? 'text-emerald-400' : 'text-slate-400'}">${avgDec} / 10</td>
-                            <td class="p-3 text-right font-bold ${avgPred >= 0 ? 'text-emerald-500' : 'text-red-500'}">${avgPred >= 0 ? '+' : ''}${avgPred}%</td>
-                            <td class="p-3 text-right font-mono text-sky-400">${avgIC}</td>
-                            <td class="p-3 font-bold text-emerald-400 cursor-pointer" onclick="document.getElementById('symbolInput').value='${topSym}'; loadStock('${topSym}'); switchTab('tab-charts');">
-                                ${topSym} <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 ml-1">D${topDecile}</span>
+                        <tr class="hover:bg-slate-100 dark:hover:bg-slate-800/80 transition cursor-pointer" onclick="selectSectorDrillDown('${sec.replace(/'/g, "\\'")}')">
+                            <td class="p-3 font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
+                                <span class="text-emerald-500 font-bold">●</span>
+                                <span>${sec}</span>
                             </td>
+                            <td class="p-3 text-right text-slate-400">${g.count}</td>
+                            <td class="p-3 text-right font-bold ${buyPct > 0 ? 'text-emerald-400' : 'text-slate-500'}">
+                                ${buyPct}% <span class="text-[10px] text-slate-400">(${g.buy_count})</span>
+                            </td>
+                            <td class="p-3 text-right font-semibold ${bullPct >= 50 ? 'text-sky-400' : 'text-slate-400'}">${bullPct}%</td>
+                            <td class="p-3 text-right ${g.oversold_count > 0 ? 'text-amber-400 font-bold' : 'text-slate-500'}">${g.oversold_count} mã</td>
+                            <td class="p-3 text-right ${g.overbought_count > 0 ? 'text-rose-400' : 'text-slate-500'}">${g.overbought_count} mã</td>
+                            <td class="p-3 text-right font-mono ${avgK < 30 ? 'text-amber-400 font-bold' : (avgK > 70 ? 'text-rose-400' : 'text-slate-300')}">${avgK}</td>
+                            <td class="p-3">
+                                ${topS.symbol ? `
+                                <span onclick="event.stopPropagation(); document.getElementById('symbolInput').value='${topS.symbol}'; loadStock('${topS.symbol}'); switchTab('tab-technical');" class="font-bold text-emerald-400 hover:underline cursor-pointer">
+                                    ${topS.symbol}
+                                </span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded ml-1 ${isBuyTop ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40' : 'bg-slate-800 text-slate-400'}">
+                                    ${topS.signal || 'Theo dõi'}
+                                </span>` : '-'}
+                            </td>
+                            <td class="p-3 text-center">
+                                <button onclick="event.stopPropagation(); selectSectorDrillDown('${sec.replace(/'/g, "\\'")}')" class="px-2 py-0.5 text-[11px] rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 transition">
+                                    Xem Ngành ↓
+                                </button>
+                            </td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>`;
+
+            // Render Sector Pills & Drill-down Stocks
+            renderSectorPills(secKeys);
+            renderSectorDrillDownStocks();
+        }
+
+        // Render Quick Filter Pills for Sectors
+        function renderSectorPills(secKeys) {
+            const container = document.getElementById('sectorPillsContainer');
+            if (!container) return;
+
+            const allPills = ['Tất Cả', ...secKeys];
+            container.innerHTML = allPills.map(sec => {
+                const isActive = sec === currentSelectedSector;
+                const activeCls = isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/60 font-bold' : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-800 hover:text-emerald-400';
+                return `<button onclick="selectSectorDrillDown('${sec.replace(/'/g, "\\'")}')" class="px-2.5 py-1 text-xs font-mono rounded border ${activeCls} transition whitespace-nowrap">${sec}</button>`;
+            }).join('');
+        }
+
+        function selectSectorDrillDown(sec) {
+            currentSelectedSector = sec;
+            const titleEl = document.getElementById('drillDownSectorTitle');
+            const subEl = document.getElementById('drillDownSectorSubtitle');
+            if (titleEl) titleEl.innerText = `Chỉ Báo Stochastic Cổ Phiếu Ngành: ${sec.toUpperCase()}`;
+            if (subEl) subEl.innerText = `Danh sách toàn bộ cổ phiếu thuộc nhóm ngành ${sec} kèm tín hiệu %K, %D và đột biến khối lượng`;
+
+            const secKeys = Object.keys(sectorAggregatedData);
+            renderSectorPills(secKeys);
+            renderSectorDrillDownStocks();
+
+            const drillSection = document.getElementById('sectorDrillDownSection');
+            if (drillSection) {
+                drillSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function renderSectorDrillDownStocks() {
+            if (!stochScreenerData || !stochScreenerData.stocks) return;
+            const container = document.getElementById('sectorStocksTableContainer');
+            if (!container) return;
+
+            const query = (document.getElementById('sectorDrillSearch')?.value || '').trim().toUpperCase();
+            let items = [...stochScreenerData.stocks];
+
+            if (currentSelectedSector !== 'Tất Cả') {
+                items = items.filter(s => (s.sector || 'Khác / Sản xuất') === currentSelectedSector);
+            }
+
+            if (query) {
+                items = items.filter(s => s.symbol.includes(query));
+            }
+
+            // Sắp xếp: Tín hiệu Mua lên đầu, sau đó theo Vol Surge, sau đó theo Score
+            items.sort((a, b) => {
+                const isBuyA = a.signal_type === 'BUY' ? 1 : 0;
+                const isBuyB = b.signal_type === 'BUY' ? 1 : 0;
+                if (isBuyB !== isBuyA) return isBuyB - isBuyA;
+                const surgeA = a.vol_surge || 1.0;
+                const surgeB = b.vol_surge || 1.0;
+                if (surgeB !== surgeA) return surgeB - surgeA;
+                return (b.score || 0) - (a.score || 0);
+            });
+
+            if (items.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-400 font-mono text-xs">Không tìm thấy cổ phiếu nào phù hợp trong ngành này.</div>`;
+                return;
+            }
+
+            container.innerHTML = `
+            <table class="w-full text-left border-collapse text-xs font-mono">
+                <thead class="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 uppercase">
+                    <tr>
+                        <th class="p-3 text-center">Hạng</th>
+                        <th class="p-3">Mã CP</th>
+                        <th class="p-3">Ngành</th>
+                        <th class="p-3 text-right">Giá Hiện Tại</th>
+                        <th class="p-3 text-right">Biến Động (%)</th>
+                        <th class="p-3 text-right">GTGD (Tỷ)</th>
+                        <th class="p-3 text-center">Đột Biến KL</th>
+                        <th class="p-3 text-center">Stoch %K (20,3)</th>
+                        <th class="p-3 text-center">Stoch %D (3)</th>
+                        <th class="p-3 text-center">Stoch RSI (%K/%D)</th>
+                        <th class="p-3 text-center">Tín Hiệu Stochastic</th>
+                        <th class="p-3 text-right">Điểm Rank</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    ${items.map((s, idx) => {
+                        const isBuy = s.signal_type === 'BUY';
+                        const isSell = s.signal_type === 'SELL';
+                        const isOversold = s.stoch_k < 20;
+                        const isOverbought = s.stoch_k > 80;
+
+                        let badgeCls = 'bg-slate-800 text-slate-400 border border-slate-700';
+                        if (isBuy) badgeCls = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold';
+                        else if (isSell) badgeCls = 'bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold';
+                        else if (isOversold) badgeCls = 'bg-sky-500/20 text-sky-400 border border-sky-500/40 font-semibold';
+                        else if (isOverbought) badgeCls = 'bg-amber-500/20 text-amber-400 border border-amber-500/40 font-semibold';
+
+                        const volSurge = s.vol_surge || 1.0;
+                        let volSurgeCls = 'text-slate-400';
+                        if (volSurge >= 2.0) volSurgeCls = 'bg-emerald-500/20 text-emerald-400 font-extrabold px-1.5 py-0.5 rounded border border-emerald-500/40';
+                        else if (volSurge >= 1.3) volSurgeCls = 'text-emerald-400 font-bold';
+                        else if (volSurge <= 0.6) volSurgeCls = 'text-slate-500';
+
+                        return `
+                        <tr onclick="document.getElementById('symbolInput').value='${s.symbol}'; loadStock('${s.symbol}'); switchTab('tab-technical');" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
+                            <td class="p-3 text-center text-slate-500 font-mono">#${idx + 1}</td>
+                            <td class="p-3 font-bold text-slate-900 dark:text-white text-sm">${s.symbol}</td>
+                            <td class="p-3 text-slate-400 text-[11px]">${s.sector || '-'}</td>
+                            <td class="p-3 text-right font-mono text-slate-900 dark:text-slate-200">${s.price.toLocaleString()}</td>
+                            <td class="p-3 text-right font-bold ${s.change_pct > 0 ? 'text-emerald-400' : (s.change_pct < 0 ? 'text-rose-400' : 'text-slate-400')}">
+                                ${s.change_pct > 0 ? '+' : ''}${s.change_pct.toFixed(2)}%
+                            </td>
+                            <td class="p-3 text-right font-mono text-slate-400">${s.turnover_ty.toFixed(1)}</td>
+                            <td class="p-3 text-center"><span class="${volSurgeCls}">${volSurge.toFixed(2)}x</span></td>
+                            <td class="p-3 text-center font-bold ${s.stoch_k <= 20 ? 'text-emerald-400' : (s.stoch_k >= 80 ? 'text-rose-400' : 'text-sky-400')}">${s.stoch_k}</td>
+                            <td class="p-3 text-center text-slate-400">${s.stoch_d}</td>
+                            <td class="p-3 text-center text-[11px]">
+                                <span class="text-sky-400 font-bold">${s.stoch_rsi_k ?? '--'}</span> / <span class="text-amber-400">${s.stoch_rsi_d ?? '--'}</span>
+                            </td>
+                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] ${badgeCls}">${s.signal}</span></td>
+                            <td class="p-3 text-right font-bold text-purple-400">${s.score}</td>
                         </tr>`;
                     }).join('')}
                 </tbody>
             </table>`;
         }
 
-        // Render Alpha Flow Scanner (formerly Radar Gom Đột Biến)
-        function renderSpikesRadar(mode = 'buy_top') {
-            if (allScreenerData.length === 0) return;
+        // ====================================================================
+        // TAB: BỘ LỌC DÒNG TIỀN ĐỘT BIẾN (STOCHASTIC x VOLUME SURGE)
+        // ====================================================================
+        let currentSpikesFilter = 'buy';
 
-            const btnTop = document.getElementById('btnSpikesTop');
-            const btnAll = document.getElementById('btnSpikesAll');
-            if (btnTop && btnAll) {
-                if (mode === 'buy_top') {
-                    btnTop.className = 'px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold';
-                    btnAll.className = 'px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
-                } else {
-                    btnAll.className = 'px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold';
-                    btnTop.className = 'px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
-                }
-            }
-
-            let candidates = allScreenerData.filter(d => (d.latest_decile || 5) >= (mode === 'buy_top' ? 9 : 8));
-            if (candidates.length < 10) {
-                candidates = allScreenerData.filter(d => (d.latest_decile || 5) >= 8);
-            }
-
-            // Sắp xếp ưu tiên: Decile (10 -> 9 -> 8) DESC, Lợi nhuận dự báo T+10 DESC, sau đó IC OOS (độ tin cậy) DESC
-            candidates.sort((a, b) => {
-                const decDiff = (b.latest_decile || 5) - (a.latest_decile || 5);
-                if (decDiff !== 0) return decDiff;
-                const retDiff = (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
-                if (retDiff !== 0) return retDiff;
-                return (b.oos_ic || 0) - (a.oos_ic || 0);
+        function setSpikesFilter(mode) {
+            currentSpikesFilter = mode;
+            document.querySelectorAll('.spikes-filter-btn').forEach(btn => {
+                btn.className = 'spikes-filter-btn px-2.5 py-1 text-xs font-mono rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 transition';
             });
+            const btnId = mode === 'buy' ? 'btnSpikeBuy' : (mode === 'top_vol' ? 'btnSpikeTopVol' : (mode === 'oversold' ? 'btnSpikeOversold' : (mode === 'liquidity' ? 'btnSpikeLiquidity' : 'btnSpikeSell')));
+            const activeBtn = document.getElementById(btnId);
+            if (activeBtn) {
+                activeBtn.className = 'spikes-filter-btn px-2.5 py-1 text-xs font-mono rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold';
+            }
+            renderSpikesRadar(mode);
+        }
 
-            const topSpikes = candidates.slice(0, 20);
+        async function renderSpikesRadar(mode = currentSpikesFilter) {
+            if (!stochScreenerData || !stochScreenerData.stocks) {
+                await loadStochScreener();
+            }
+            if (!stochScreenerData || !stochScreenerData.stocks) return;
+
+            const stocks = stochScreenerData.stocks;
+
+            // Compute Spike KPI Cards
+            const sortedByVol = [...stocks].filter(s => s.turnover_ty >= 0.5).sort((a, b) => (b.vol_surge || 1.0) - (a.vol_surge || 1.0));
+            const topVolStock = sortedByVol[0];
+            if (topVolStock) {
+                const elTop = document.getElementById('spikeTopVol');
+                const elTopRatio = document.getElementById('spikeTopVolRatio');
+                if (elTop) elTop.innerText = `${topVolStock.symbol} (${topVolStock.sector || 'HOSE'})`;
+                if (elTopRatio) elTopRatio.innerText = `${(topVolStock.vol_surge || 1.0).toFixed(2)}x Khối lượng TB 20 phiên`;
+            }
+
+            const totalSpikes = stocks.filter(s => (s.vol_surge || 1.0) >= 1.5 && s.turnover_ty >= 1.0).length;
+            const elTotalSpikes = document.getElementById('spikeTotalCount');
+            if (elTotalSpikes) elTotalSpikes.innerText = `${totalSpikes} mã`;
+
+            const buySpikes = stocks.filter(s => (s.vol_surge || 1.0) >= 1.2 && s.signal_type === 'BUY').length;
+            const elBuySpikes = document.getElementById('spikeBuyCount');
+            if (elBuySpikes) elBuySpikes.innerText = `${buySpikes} mã`;
+
+            const osSpikes = stocks.filter(s => (s.vol_surge || 1.0) >= 1.2 && s.stoch_k <= 35).length;
+            const elOsSpikes = document.getElementById('spikeOversoldCount');
+            if (elOsSpikes) elOsSpikes.innerText = `${osSpikes} mã`;
+
+            // Filter candidates based on mode
+            let candidates = [];
+            if (mode === 'buy') {
+                candidates = stocks.filter(s => s.signal_type === 'BUY');
+                // Sắp xếp: Ưu tiên mã có vol_surge cao nhất trong các mã MUA
+                candidates.sort((a, b) => (b.vol_surge || 1.0) - (a.vol_surge || 1.0));
+            } else if (mode === 'top_vol') {
+                candidates = stocks.filter(s => s.turnover_ty >= 1.0);
+                candidates.sort((a, b) => (b.vol_surge || 1.0) - (a.vol_surge || 1.0));
+            } else if (mode === 'oversold') {
+                candidates = stocks.filter(s => s.stoch_k <= 35 && (s.vol_surge || 1.0) >= 1.1);
+                if (candidates.length < 5) candidates = stocks.filter(s => s.stoch_k <= 35);
+                candidates.sort((a, b) => (b.vol_surge || 1.0) - (a.vol_surge || 1.0));
+            } else if (mode === 'liquidity') {
+                candidates = stocks.filter(s => s.turnover_ty >= 10.0 && s.stoch_k > s.stoch_d);
+                if (candidates.length < 5) candidates = stocks.filter(s => s.turnover_ty >= 5.0 && s.stoch_k > s.stoch_d);
+                candidates.sort((a, b) => b.turnover_ty - a.turnover_ty);
+            } else if (mode === 'sell') {
+                candidates = stocks.filter(s => s.signal_type === 'SELL');
+                candidates.sort((a, b) => (b.vol_surge || 1.0) - (a.vol_surge || 1.0));
+            }
+
+            const topSpikes = candidates.slice(0, 30);
             const container = document.getElementById('spikesTableContainer');
+            if (!container) return;
+
+            if (topSpikes.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-slate-400 font-mono text-xs">Hiện chưa có mã nào thỏa mãn điều kiện lọc đột biến này trong phiên.</div>`;
+                return;
+            }
+
             container.innerHTML = `
             <table class="w-full text-left border-collapse text-xs font-mono">
                 <thead class="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 uppercase">
                     <tr>
+                        <th class="p-3 text-center">Hạng</th>
                         <th class="p-3">Mã CP</th>
                         <th class="p-3">Ngành</th>
-                        <th class="p-3 text-center">Decile Dự Báo</th>
-                        <th class="p-3 text-right">Dự Báo T+10 (%)</th>
-                        <th class="p-3 text-center">Tín Hiệu Định Lượng</th>
-                        <th class="p-3 text-center">Độ Uy Tín Mô Hình (IC OOS | Score)</th>
+                        <th class="p-3 text-right">Giá Hiện Tại</th>
+                        <th class="p-3 text-right">Biến Động (%)</th>
+                        <th class="p-3 text-center">Đột Biến KL (xVol TB20P)</th>
+                        <th class="p-3 text-right">Khối Lượng / TB20P</th>
+                        <th class="p-3 text-right">GTGD (Tỷ)</th>
+                        <th class="p-3 text-center">Stoch %K / %D</th>
+                        <th class="p-3 text-center">Tín Hiệu Stochastic</th>
                         <th class="p-3 text-center">Hành Động Đề Xuất</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                    ${topSpikes.map(r => {
-                        const dec = r.latest_decile || 5;
-                        const pred = r.latest_pred_ret || 0;
-                        const decBadge = dec === 10 ? 'bg-emerald-600 text-white font-extrabold' : (dec === 9 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-emerald-500/10 text-emerald-500');
-                        const sigText = dec === 10 ? '🔥 TĂNG MẠNH NHẤT' : (dec === 9 ? '🚀 TÍN HIỆU GOM MẠNH' : '⚡ TÍCH LŨY MUA');
-                        const actionText = dec >= 9 ? 'MỞ VỊ THẾ MUA' : 'THEO DÕI MUA';
-                        const actionClass = dec >= 9 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-sky-500/10 text-sky-400';
+                    ${topSpikes.map((r, idx) => {
+                        const surge = r.vol_surge || 1.0;
+                        let surgeBadge = 'bg-slate-800 text-slate-400';
+                        let surgeText = `${surge.toFixed(2)}x`;
+                        if (surge >= 2.0) {
+                            surgeBadge = 'bg-emerald-600 text-white font-extrabold border border-emerald-400 animate-pulse';
+                            surgeText = `🔥 ${surge.toFixed(2)}x BÙNG NỔ`;
+                        } else if (surge >= 1.5) {
+                            surgeBadge = 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/40';
+                            surgeText = `🚀 ${surge.toFixed(2)}x TĂNG MẠNH`;
+                        } else if (surge >= 1.2) {
+                            surgeBadge = 'bg-sky-500/20 text-sky-400 font-semibold border border-sky-500/40';
+                            surgeText = `⚡ ${surge.toFixed(2)}x`;
+                        }
+
+                        let actionText = 'THEO DÕI';
+                        let actionClass = 'bg-slate-800 text-slate-400';
+                        if (r.signal_type === 'BUY' && surge >= 1.2) {
+                            actionText = '🔥 MỞ MUA BÙNG NỔ';
+                            actionClass = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold';
+                        } else if (r.signal_type === 'BUY') {
+                            actionText = 'MỞ VỊ THẾ MUA';
+                            actionClass = 'bg-emerald-500/10 text-emerald-400 font-semibold';
+                        } else if (r.stoch_k <= 30 && surge >= 1.2) {
+                            actionText = '💎 BẮT ĐÁY GOM';
+                            actionClass = 'bg-sky-500/20 text-sky-400 border border-sky-500/40 font-bold';
+                        } else if (r.signal_type === 'SELL') {
+                            actionText = '🔻 CẢNH BÁO XẢ / BÁN';
+                            actionClass = 'bg-rose-500/20 text-rose-400 border border-rose-500/40 font-bold';
+                        } else if (r.stoch_k > r.stoch_d) {
+                            actionText = 'NẮM GIỮ TÍCH CỰC';
+                            actionClass = 'bg-emerald-500/10 text-emerald-400';
+                        }
+
+                        const volNowStr = r.vol_now ? r.vol_now.toLocaleString() : '-';
+                        const volMeanStr = r.vol20_mean ? r.vol20_mean.toLocaleString() : '-';
+
                         return `
-                        <tr onclick="document.getElementById('symbolInput').value='${r.symbol}'; loadStock('${r.symbol}'); switchTab('tab-charts');" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
+                        <tr onclick="document.getElementById('symbolInput').value='${r.symbol}'; loadStock('${r.symbol}'); switchTab('tab-technical');" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
+                            <td class="p-3 text-center text-slate-500 font-mono">#${idx + 1}</td>
                             <td class="p-3 font-bold text-slate-900 dark:text-white text-sm">${r.symbol}</td>
-                            <td class="p-3 text-slate-400">${r.sector}</td>
-                            <td class="p-3 text-center"><span class="px-2.5 py-1 rounded text-xs ${decBadge}">Decile ${dec} / ${r.n_deciles || 10}</span></td>
-                            <td class="p-3 text-right font-bold ${pred >= 0 ? 'text-emerald-400' : 'text-red-400'} text-sm">${pred >= 0 ? '+' : ''}${pred.toFixed(2)}%</td>
-                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">${sigText}</span></td>
+                            <td class="p-3 text-slate-400 text-[11px]">${r.sector || '-'}</td>
+                            <td class="p-3 text-right font-mono text-slate-900 dark:text-slate-200">${r.price.toLocaleString()}</td>
+                            <td class="p-3 text-right font-bold ${r.change_pct > 0 ? 'text-emerald-400' : (r.change_pct < 0 ? 'text-rose-400' : 'text-slate-400')}">
+                                ${r.change_pct > 0 ? '+' : ''}${r.change_pct.toFixed(2)}%
+                            </td>
+                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] ${surgeBadge}">${surgeText}</span></td>
+                            <td class="p-3 text-right text-slate-400 text-[11px]">
+                                <span class="text-slate-200 font-semibold">${volNowStr}</span> / <span class="text-slate-500">${volMeanStr}</span>
+                            </td>
+                            <td class="p-3 text-right font-mono text-slate-400">${r.turnover_ty.toFixed(1)} Tỷ</td>
+                            <td class="p-3 text-center text-xs">
+                                <span class="font-extrabold ${r.stoch_k <= 20 ? 'text-emerald-400' : (r.stoch_k >= 80 ? 'text-rose-400' : 'text-sky-400')}">${r.stoch_k}</span>
+                                <span class="text-slate-500 mx-1">/</span>
+                                <span class="text-amber-400">${r.stoch_d}</span>
+                            </td>
                             <td class="p-3 text-center">
-                                <span class="font-bold ${r.oos_ic >= 0.15 ? 'text-emerald-400' : 'text-sky-400'}">IC: ${r.oos_ic.toFixed(3)}</span>
-                                <span class="text-slate-500 mx-1">|</span>
-                                <span class="text-slate-400">Score: ${r.score.toFixed(3)}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.signal_type === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' : (r.signal_type === 'SELL' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400')}">${r.signal}</span>
                             </td>
                             <td class="p-3 text-center"><span class="px-2.5 py-1 rounded text-[11px] ${actionClass}">${actionText}</span></td>
                         </tr>`;
@@ -1810,15 +2176,6 @@ def index_page():
             try {
                 loadStock('SSI');
                 loadStochScreener();
-                const res = await fetch('/api/screener');
-                allScreenerData = await res.json();
-                allScreenerData.sort((a, b) => {
-                    const decDiff = (b.latest_decile || 5) - (a.latest_decile || 5);
-                    if (decDiff !== 0) return decDiff;
-                    const retDiff = (b.latest_pred_ret || 0) - (a.latest_pred_ret || 0);
-                    if (retDiff !== 0) return retDiff;
-                    return (b.oos_ic || 0) - (a.oos_ic || 0);
-                });
             } catch (err) {
                 console.error(err);
             }
