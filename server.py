@@ -1065,9 +1065,7 @@ def index_page():
                         <div class="text-[11px] text-slate-400 mt-1">Tổng giá trị khớp ròng</div>
                     </div>
                 </div>
-                <div class="h-96">
-                    <canvas id="flowChart"></canvas>
-                </div>
+                <div id="plotlyFlowContainer" class="w-full h-96"></div>
             </div>
         </div>
 
@@ -1532,8 +1530,13 @@ def index_page():
             if (tabId === 'tab-stoch-screener') {
                 if (!stochScreenerData) loadStochScreener();
             }
-            if (tabId === 'tab-flow' && currentStockData && currentStockData.flow) {
-                renderFlowChart(currentStockData.flow);
+            if (tabId === 'tab-flow') {
+                if (currentStockData && currentStockData.flow) {
+                    renderFlowChart(currentStockData.flow);
+                }
+                setTimeout(() => {
+                    try { Plotly.Plots.resize('plotlyFlowContainer'); } catch(e) {}
+                }, 60);
             }
             if (tabId === 'tab-sectors') {
                 renderSectorBreadth();
@@ -1616,26 +1619,29 @@ def index_page():
             }
         }
 
-        // Render 4-Group Investor Flow Cumulative Chart
+        // Render 4-Group Investor Flow Cumulative Chart (Plotly Powered)
         function renderFlowChart(flowData) {
             if (!flowData || flowData.length === 0) return;
-            const canvas = document.getElementById('flowChart');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            if (flowChartInstance) flowChartInstance.destroy();
+            const container = document.getElementById('plotlyFlowContainer');
+            if (!container) return;
 
             const labels = flowData.map(x => x.time);
             let cumF = 0, cumP = 0, cumInst = 0, cumInd = 0;
             const seriesF = [], seriesP = [], seriesInst = [], seriesInd = [];
+            
             flowData.forEach(x => {
-                cumF += (x.foreign || 0); seriesF.push(Math.round(cumF * 100) / 100);
-                cumP += (x.prop || 0); seriesP.push(Math.round(cumP * 100) / 100);
+                cumF += (x.foreign || 0);
+                seriesF.push(Math.round(cumF * 100) / 100);
+                cumP += (x.prop || 0);
+                seriesP.push(Math.round(cumP * 100) / 100);
+
                 if (x.local_inst !== null && x.local_inst !== undefined && !isNaN(x.local_inst)) {
                     cumInst += x.local_inst;
                     seriesInst.push(Math.round(cumInst * 100) / 100);
                 } else {
                     seriesInst.push(null);
                 }
+
                 if (x.local_ind !== null && x.local_ind !== undefined && !isNaN(x.local_ind)) {
                     cumInd += x.local_ind;
                     seriesInd.push(Math.round(cumInd * 100) / 100);
@@ -1644,37 +1650,76 @@ def index_page():
                 }
             });
 
-            const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-            const tickColor = isDarkMode ? '#94A3B8' : '#64748B';
-
-            flowChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Khối Ngoại', data: seriesF, borderColor: '#00E5FF', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: true },
-                        { label: 'Tự Doanh', data: seriesP, borderColor: '#10B981', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: true },
-                        { label: 'Tổ Chức Nội', data: seriesInst, borderColor: '#A855F7', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: false },
-                        { label: 'Cá Nhân Nội', data: seriesInd, borderColor: '#F59E0B', borderWidth: 2.2, tension: 0.2, pointRadius: 0, spanGaps: false },
-                    ]
+            const traces = [
+                {
+                    x: labels,
+                    y: seriesF,
+                    mode: 'lines',
+                    name: 'Khối Ngoại (Foreign)',
+                    line: { color: '#00E5FF', width: 2.5 },
+                    connectgaps: true,
+                    hovertemplate: '%{y:+.2f} Tỷ<extra>Khối Ngoại</extra>'
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', labels: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 12 } } },
-                        tooltip: { mode: 'index', intersect: false }
-                    },
-                    scales: {
-                        x: { grid: { color: gridColor }, ticks: { color: tickColor, maxTicksLimit: 10 } },
-                        y: { 
-                            grid: { color: gridColor }, 
-                            ticks: { color: tickColor, callback: v => v + ' Tỷ' },
-                            title: { display: true, text: 'Giá Trị Lũy Kế (Tỷ VNĐ)', color: tickColor }
-                        }
-                    }
+                {
+                    x: labels,
+                    y: seriesP,
+                    mode: 'lines',
+                    name: 'Tự Doanh (Prop)',
+                    line: { color: '#10B981', width: 2.5 },
+                    connectgaps: true,
+                    hovertemplate: '%{y:+.2f} Tỷ<extra>Tự Doanh</extra>'
+                },
+                {
+                    x: labels,
+                    y: seriesInst,
+                    mode: 'lines',
+                    name: 'Tổ Chức Nội (Inst)',
+                    line: { color: '#A855F7', width: 2.2, dash: 'dot' },
+                    connectgaps: false,
+                    hovertemplate: '%{y:+.2f} Tỷ<extra>Tổ Chức Nội</extra>'
+                },
+                {
+                    x: labels,
+                    y: seriesInd,
+                    mode: 'lines',
+                    name: 'Cá Nhân Nội (Retail)',
+                    line: { color: '#F59E0B', width: 2.2, dash: 'dash' },
+                    connectgaps: false,
+                    hovertemplate: '%{y:+.2f} Tỷ<extra>Cá Nhân Nội</extra>'
                 }
-            });
+            ];
+
+            const layout = {
+                paper_bgcolor: isDarkMode ? '#0F172A' : '#FFFFFF',
+                plot_bgcolor: isDarkMode ? '#0F172A' : '#FFFFFF',
+                margin: { l: 60, r: 25, t: 25, b: 40 },
+                hovermode: 'x unified',
+                legend: {
+                    orientation: 'h',
+                    y: 1.15,
+                    x: 0,
+                    font: { color: isDarkMode ? '#94A3B8' : '#64748B', size: 11, family: 'Plus Jakarta Sans' }
+                },
+                xaxis: {
+                    gridcolor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                    tickfont: { color: isDarkMode ? '#94A3B8' : '#64748B', size: 10 },
+                    showgrid: true,
+                    zeroline: false,
+                    nticks: 10
+                },
+                yaxis: {
+                    title: { text: 'Giá Trị Lũy Kế (Tỷ VNĐ)', font: { color: isDarkMode ? '#94A3B8' : '#64748B', size: 11 } },
+                    gridcolor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                    tickfont: { color: isDarkMode ? '#94A3B8' : '#64748B', size: 10 },
+                    ticksuffix: ' Tỷ',
+                    showgrid: true,
+                    zeroline: true,
+                    zerolinecolor: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                    zerolinewidth: 1.5
+                }
+            };
+
+            Plotly.react('plotlyFlowContainer', traces, layout, { responsive: true, displayModeBar: false });
         }
 
 
