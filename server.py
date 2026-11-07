@@ -1045,24 +1045,24 @@ def index_page():
                 <h3 class="font-bold text-sm uppercase text-slate-800 dark:text-slate-300 tracking-wider mb-4">Luân Chuyển Dòng Tiền 4 Nhóm NĐT (Khối Ngoại, Tự Doanh, Tổ Chức, Cá Nhân)</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="flowCards">
                     <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark rounded-lg p-4">
-                        <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Khối Ngoại (60P)</div>
+                        <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Khối Ngoại (Phiên Hôm Nay)</div>
                         <div id="flowForeign" class="text-2xl font-mono font-bold text-cyan-600 dark:text-cyan-400 mt-1">0.0 Tỷ</div>
-                        <div class="text-[11px] text-slate-400 mt-1">Tổng giá trị khớp ròng</div>
+                        <div id="flowForeignSub" class="text-[11px] text-slate-400 mt-1">Lũy kế 60P: 0.0 Tỷ</div>
                     </div>
                     <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark rounded-lg p-4">
-                        <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tự Doanh (60P)</div>
+                        <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tự Doanh (Phiên Hôm Nay)</div>
                         <div id="flowProp" class="text-2xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-1">0.0 Tỷ</div>
-                        <div class="text-[11px] text-slate-400 mt-1">Tổng giá trị khớp ròng</div>
+                        <div id="flowPropSub" class="text-[11px] text-slate-400 mt-1">Lũy kế 60P: 0.0 Tỷ</div>
                     </div>
                     <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark rounded-lg p-4">
-                        <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tổ Chức Nội (60P)</div>
-                        <div id="flowInst" class="text-2xl font-mono font-bold text-purple-600 dark:text-purple-400 mt-1">0.0 Tỷ</div>
-                        <div class="text-[11px] text-slate-400 mt-1">Tổng giá trị khớp ròng</div>
+                        <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tổ Chức Lớn (Ngoại + Tự Doanh)</div>
+                        <div id="flowTotalInst" class="text-2xl font-mono font-bold text-purple-600 dark:text-purple-400 mt-1">0.0 Tỷ</div>
+                        <div class="text-[11px] text-slate-400 mt-1">Tổng khớp ròng hôm nay</div>
                     </div>
                     <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-brand-borderDark rounded-lg p-4">
-                        <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Cá Nhân Nội (60P)</div>
-                        <div id="flowInd" class="text-2xl font-mono font-bold text-amber-600 dark:text-amber-400 mt-1">0.0 Tỷ</div>
-                        <div class="text-[11px] text-slate-400 mt-1">Tổng giá trị khớp ròng</div>
+                        <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Tổ Chức &amp; Cá Nhân Nội</div>
+                        <div id="flowInstIndStatus" class="text-lg font-mono font-bold text-slate-400 mt-1">Ngưng công bố</div>
+                        <div class="text-[11px] text-slate-400 mt-1">Sàn dừng tách từ 28/08/2026</div>
                     </div>
                 </div>
                 <div id="plotlyFlowContainer" class="w-full h-96"></div>
@@ -1601,16 +1601,38 @@ def index_page():
                 // Render Technical Indicators Figure
                 Plotly.react('plotlyTechContainer', data.plotly_tech_fig.data, data.plotly_tech_fig.layout, {responsive: true, displayModeBar: false});
 
-                // Update Flow Cards
-                let f_sum = data.flow.reduce((acc, x) => acc + x.foreign, 0);
-                let p_sum = data.flow.reduce((acc, x) => acc + x.prop, 0);
-                let inst_sum = data.flow.reduce((acc, x) => acc + x.local_inst, 0);
-                let ind_sum = data.flow.reduce((acc, x) => acc + x.local_ind, 0);
+                // Update Flow Cards (Phiên Hôm Nay & Lũy Kế)
+                const flowList = data.flow || [];
+                const lastFlow = flowList.length > 0 ? flowList[flowList.length - 1] : {};
 
-                document.getElementById('flowForeign').innerText = `${f_sum >= 0 ? '+' : ''}${f_sum.toFixed(1)} Tỷ`;
-                document.getElementById('flowProp').innerText = `${p_sum >= 0 ? '+' : ''}${p_sum.toFixed(1)} Tỷ`;
-                document.getElementById('flowInst').innerText = `${inst_sum >= 0 ? '+' : ''}${inst_sum.toFixed(1)} Tỷ`;
-                document.getElementById('flowInd').innerText = `${ind_sum >= 0 ? '+' : ''}${ind_sum.toFixed(1)} Tỷ`;
+                const f_today = lastFlow.foreign || 0;
+                const p_today = lastFlow.prop || 0;
+                const total_today = f_today + p_today;
+
+                let f_sum = flowList.reduce((acc, x) => acc + (x.foreign || 0), 0);
+                let p_sum = flowList.reduce((acc, x) => acc + (x.prop || 0), 0);
+
+                const elF = document.getElementById('flowForeign');
+                if (elF) {
+                    elF.innerText = `${f_today >= 0 ? '+' : ''}${f_today.toFixed(2)} Tỷ`;
+                    elF.className = `text-2xl font-mono font-bold mt-1 ${f_today >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                }
+                const elFSub = document.getElementById('flowForeignSub');
+                if (elFSub) elFSub.innerText = `Lũy kế 60P: ${f_sum >= 0 ? '+' : ''}${f_sum.toFixed(1)} Tỷ`;
+
+                const elP = document.getElementById('flowProp');
+                if (elP) {
+                    elP.innerText = `${p_today >= 0 ? '+' : ''}${p_today.toFixed(2)} Tỷ`;
+                    elP.className = `text-2xl font-mono font-bold mt-1 ${p_today >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                }
+                const elPSub = document.getElementById('flowPropSub');
+                if (elPSub) elPSub.innerText = `Lũy kế 60P: ${p_sum >= 0 ? '+' : ''}${p_sum.toFixed(1)} Tỷ`;
+
+                const elTotal = document.getElementById('flowTotalInst');
+                if (elTotal) {
+                    elTotal.innerText = `${total_today >= 0 ? '+' : ''}${total_today.toFixed(2)} Tỷ`;
+                    elTotal.className = `text-2xl font-mono font-bold mt-1 ${total_today >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                }
 
                 renderFlowChart(data.flow);
 
@@ -1673,19 +1695,21 @@ def index_page():
                     x: labels,
                     y: seriesInst,
                     mode: 'lines',
-                    name: 'Tổ Chức Nội (Inst)',
+                    name: 'Tổ Chức Nội (≤28/08)',
                     line: { color: '#A855F7', width: 2.2, dash: 'dot' },
                     connectgaps: false,
-                    hovertemplate: '%{y:+.2f} Tỷ<extra>Tổ Chức Nội</extra>'
+                    visible: 'legendonly',
+                    hovertemplate: '%{y:+.2f} Tỷ<extra>Tổ Chức Nội (Lịch sử)</extra>'
                 },
                 {
                     x: labels,
                     y: seriesInd,
                     mode: 'lines',
-                    name: 'Cá Nhân Nội (Retail)',
+                    name: 'Cá Nhân Nội (≤28/08)',
                     line: { color: '#F59E0B', width: 2.2, dash: 'dash' },
                     connectgaps: false,
-                    hovertemplate: '%{y:+.2f} Tỷ<extra>Cá Nhân Nội</extra>'
+                    visible: 'legendonly',
+                    hovertemplate: '%{y:+.2f} Tỷ<extra>Cá Nhân Nội (Lịch sử)</extra>'
                 }
             ];
 
