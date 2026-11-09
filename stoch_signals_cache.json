@@ -742,28 +742,28 @@
       "rank": 29
     },
     {
-      "symbol": "DXV",
+      "symbol": "TIX",
       "sector": "Khác / Sản xuất",
       "date": "06/11/2026",
-      "price": 2750.0,
+      "price": 39000.0,
       "change_pct": 0.0,
       "turnover_ty": 0.0,
       "vol_now": 0,
-      "vol20_mean": 233,
+      "vol20_mean": 5,
       "vol_surge": 0.0,
       "stoch_k": 0.0,
       "stoch_d": 0.0,
       "stoch_rsi_k": 0.0,
       "stoch_rsi_d": 0.0,
       "stoch_prev_k": 0.0,
-      "stoch_prev_d": 4.2,
+      "stoch_prev_d": 0.0,
       "k_diff": 0.0,
       "signal": "QUÁ BÁN (< 20)",
       "signal_type": "OVERSOLD",
       "status_desc": "Quá bán sâu (K=0.0 < 20)",
       "score": 60.0,
-      "target": 2816.0,
-      "stop_loss": 2700.0,
+      "target": 39189.0,
+      "stop_loss": 38859.0,
       "rank": 30
     },
     {
@@ -817,28 +817,28 @@
       "rank": 32
     },
     {
-      "symbol": "TIX",
+      "symbol": "DXV",
       "sector": "Khác / Sản xuất",
       "date": "06/11/2026",
-      "price": 39000.0,
+      "price": 2750.0,
       "change_pct": 0.0,
       "turnover_ty": 0.0,
       "vol_now": 0,
-      "vol20_mean": 5,
+      "vol20_mean": 233,
       "vol_surge": 0.0,
       "stoch_k": 0.0,
       "stoch_d": 0.0,
       "stoch_rsi_k": 0.0,
       "stoch_rsi_d": 0.0,
       "stoch_prev_k": 0.0,
-      "stoch_prev_d": 0.0,
+      "stoch_prev_d": 4.2,
       "k_diff": 0.0,
       "signal": "QUÁ BÁN (< 20)",
       "signal_type": "OVERSOLD",
       "status_desc": "Quá bán sâu (K=0.0 < 20)",
       "score": 60.0,
-      "target": 39189.0,
-      "stop_loss": 38859.0,
+      "target": 2816.0,
+      "stop_loss": 2700.0,
       "rank": 33
     },
     {
@@ -6642,31 +6642,6 @@
       "rank": 265
     },
     {
-      "symbol": "QNP",
-      "sector": "Khác / Sản xuất",
-      "date": "06/11/2026",
-      "price": 30350.0,
-      "change_pct": 0.0,
-      "turnover_ty": 0.0,
-      "vol_now": 0,
-      "vol20_mean": 1082,
-      "vol_surge": 0.0,
-      "stoch_k": 66.7,
-      "stoch_d": 33.3,
-      "stoch_rsi_k": 66.7,
-      "stoch_rsi_d": 33.3,
-      "stoch_prev_k": 33.3,
-      "stoch_prev_d": 11.9,
-      "k_diff": 33.3,
-      "signal": "THEO DÕI (20 - 80)",
-      "signal_type": "NEUTRAL",
-      "status_desc": "Dao động bình thường (K=66.7)",
-      "score": 40.0,
-      "target": 30687.0,
-      "stop_loss": 30097.0,
-      "rank": 266
-    },
-    {
       "symbol": "SFC",
       "sector": "Khác / Sản xuất",
       "date": "06/11/2026",
@@ -6689,7 +6664,7 @@
       "score": 40.0,
       "target": 18691.0,
       "stop_loss": 18531.0,
-      "rank": 267
+      "rank": 266
     },
     {
       "symbol": "TN1",
@@ -6714,6 +6689,31 @@
       "score": 40.0,
       "target": 12526.0,
       "stop_loss": 11606.0,
+      "rank": 267
+    },
+    {
+      "symbol": "QNP",
+      "sector": "Khác / Sản xuất",
+      "date": "06/11/2026",
+      "price": 30350.0,
+      "change_pct": 0.0,
+      "turnover_ty": 0.0,
+      "vol_now": 0,
+      "vol20_mean": 1082,
+      "vol_surge": 0.0,
+      "stoch_k": 66.7,
+      "stoch_d": 33.3,
+      "stoch_rsi_k": 66.7,
+      "stoch_rsi_d": 33.3,
+      "stoch_prev_k": 33.3,
+      "stoch_prev_d": 11.9,
+      "k_diff": 33.3,
+      "signal": "THEO DÕI (20 - 80)",
+      "signal_type": "NEUTRAL",
+      "status_desc": "Dao động bình thường (K=66.7)",
+      "score": 40.0,
+      "target": 30687.0,
+      "stop_loss": 30097.0,
       "rank": 268
     },
     {
@@ -10142,5 +10142,5 @@
       "rank": 405
     }
   ],
-  "updated_at": "2026-11-07 17:42:18"
+  "updated_at": "2026-11-09 08:05:39"
 }
