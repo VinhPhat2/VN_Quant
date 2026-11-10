@@ -3095,7 +3095,7 @@
       "symbol": "BMI",
       "sector": "Bảo hiểm",
       "date": "10/11/2026",
-      "price": 13650.0,
+      "price": 12409.215,
       "change_pct": 0.0,
       "turnover_ty": 1.48,
       "vol_now": 108187,
@@ -3112,8 +3112,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=29.3)",
       "score": 40.0,
-      "target": 14221.0,
-      "stop_loss": 13221.0,
+      "target": 12929.0,
+      "stop_loss": 12020.0,
       "rank": 124
     },
     {
@@ -4895,7 +4895,7 @@
       "symbol": "BMP",
       "sector": "Hóa chất & Phân bón",
       "date": "10/11/2026",
-      "price": 137800.0,
+      "price": 131295.84,
       "change_pct": -0.07,
       "turnover_ty": 12.33,
       "vol_now": 89411,
@@ -4912,8 +4912,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=44.4)",
       "score": 40.0,
-      "target": 140783.0,
-      "stop_loss": 135563.0,
+      "target": 134138.0,
+      "stop_loss": 129164.0,
       "rank": 196
     },
     {
@@ -5570,7 +5570,7 @@
       "symbol": "PPC",
       "sector": "Dầu khí & Năng lượng",
       "date": "10/11/2026",
-      "price": 8730.0,
+      "price": 8280.405,
       "change_pct": 0.23,
       "turnover_ty": 1.5,
       "vol_now": 172186,
@@ -5587,8 +5587,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=53.8)",
       "score": 40.0,
-      "target": 8883.0,
-      "stop_loss": 8615.0,
+      "target": 8426.0,
+      "stop_loss": 8171.0,
       "rank": 223
     },
     {
@@ -6670,7 +6670,7 @@
       "symbol": "VNM",
       "sector": "Bán lẻ & Tiêu dùng",
       "date": "10/11/2026",
-      "price": 57900.0,
+      "price": 55398.72,
       "change_pct": 1.76,
       "turnover_ty": 219.42,
       "vol_now": 3797554,
@@ -6687,8 +6687,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=66.7)",
       "score": 40.0,
-      "target": 59260.0,
-      "stop_loss": 56880.0,
+      "target": 56700.0,
+      "stop_loss": 54423.0,
       "rank": 267
     },
     {
@@ -7095,7 +7095,7 @@
       "symbol": "HPA",
       "sector": "Khác / Sản xuất",
       "date": "10/11/2026",
-      "price": 27600.0,
+      "price": 25800.48,
       "change_pct": 0.18,
       "turnover_ty": 2.92,
       "vol_now": 105751,
@@ -7112,8 +7112,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=71.5)",
       "score": 40.0,
-      "target": 28406.0,
-      "stop_loss": 26996.0,
+      "target": 26554.0,
+      "stop_loss": 25236.0,
       "rank": 284
     },
     {
@@ -10142,5 +10142,5 @@
       "rank": 405
     }
   ],
-  "updated_at": "2026-11-10 08:31:40"
+  "updated_at": "2026-11-10 16:43:23"
 }
