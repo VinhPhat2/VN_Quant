@@ -4670,7 +4670,7 @@
       "symbol": "DPR",
       "sector": "Hóa chất & Phân bón",
       "date": "12/11/2026",
-      "price": 37550.0,
+      "price": 36149.385,
       "change_pct": 0.0,
       "turnover_ty": 9.17,
       "vol_now": 244095,
@@ -4687,8 +4687,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=41.7)",
       "score": 40.0,
-      "target": 38704.0,
-      "stop_loss": 36684.0,
+      "target": 37261.0,
+      "stop_loss": 35316.0,
       "rank": 187
     },
     {
@@ -5095,7 +5095,7 @@
       "symbol": "TBC",
       "sector": "Khác / Sản xuất",
       "date": "12/11/2026",
-      "price": 30900.0,
+      "price": 29898.84,
       "change_pct": 0.0,
       "turnover_ty": 0.06,
       "vol_now": 2000,
@@ -5112,8 +5112,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=46.2)",
       "score": 40.0,
-      "target": 31946.0,
-      "stop_loss": 30116.0,
+      "target": 30911.0,
+      "stop_loss": 29140.0,
       "rank": 204
     },
     {
@@ -6695,7 +6695,7 @@
       "symbol": "VSH",
       "sector": "Dầu khí & Năng lượng",
       "date": "12/11/2026",
-      "price": 41150.0,
+      "price": 40150.055,
       "change_pct": -0.12,
       "turnover_ty": 1.23,
       "vol_now": 30214,
@@ -6712,8 +6712,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=66.4)",
       "score": 40.0,
-      "target": 42384.0,
-      "stop_loss": 40224.0,
+      "target": 41354.0,
+      "stop_loss": 39247.0,
       "rank": 268
     },
     {
@@ -7523,9 +7523,9 @@
       "price": 13250.0,
       "change_pct": 0.0,
       "turnover_ty": 0.0,
-      "vol_now": 2,
-      "vol20_mean": 1879,
-      "vol_surge": 0.0,
+      "vol_now": 12,
+      "vol20_mean": 1880,
+      "vol_surge": 0.01,
       "stoch_k": 78.0,
       "stoch_d": 78.6,
       "stoch_rsi_k": 35.0,
@@ -8170,7 +8170,7 @@
       "symbol": "DBT",
       "sector": "Khác / Sản xuất",
       "date": "12/11/2026",
-      "price": 13000.0,
+      "price": 12149.8,
       "change_pct": -1.52,
       "turnover_ty": 0.07,
       "vol_now": 5511,
@@ -8187,8 +8187,8 @@
       "signal_type": "SELL",
       "status_desc": "%K=50.5 cắt xuống %D=53.2 (Vùng 20-80)",
       "score": 23.9,
-      "target": 13240.0,
-      "stop_loss": 12820.0,
+      "target": 12374.0,
+      "stop_loss": 11982.0,
       "rank": 327
     },
     {
@@ -10142,5 +10142,5 @@
       "rank": 405
     }
   ],
-  "updated_at": "2026-11-12 08:28:29"
+  "updated_at": "2026-11-12 17:12:35"
 }
