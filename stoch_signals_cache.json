@@ -620,7 +620,7 @@
       "symbol": "AST",
       "sector": "Cảng biển & Logistics",
       "date": "17/11/2026",
-      "price": 61000.0,
+      "price": 58999.2,
       "change_pct": 1.84,
       "turnover_ty": 0.42,
       "vol_now": 7020,
@@ -637,8 +637,8 @@
       "signal_type": "BUY",
       "status_desc": "%K=73.3 cắt lên %D=70.7 (Vùng 20-80)",
       "score": 78.67,
-      "target": 63651.0,
-      "stop_loss": 59011.0,
+      "target": 61564.0,
+      "stop_loss": 57076.0,
       "rank": 25
     },
     {
@@ -8445,7 +8445,7 @@
       "symbol": "TMP",
       "sector": "Khác / Sản xuất",
       "date": "17/11/2026",
-      "price": 47700.0,
+      "price": 46698.3,
       "change_pct": -0.52,
       "turnover_ty": 0.14,
       "vol_now": 2900,
@@ -8462,8 +8462,8 @@
       "signal_type": "SELL",
       "status_desc": "%K=40.0 cắt xuống %D=46.8 (Vùng 20-80)",
       "score": 26.0,
-      "target": 51671.0,
-      "stop_loss": 44721.0,
+      "target": 50586.0,
+      "stop_loss": 43782.0,
       "rank": 338
     },
     {
@@ -9595,7 +9595,7 @@
       "symbol": "SFC",
       "sector": "Khác / Sản xuất",
       "date": "17/11/2026",
-      "price": 19300.0,
+      "price": 17499.31,
       "change_pct": 1.58,
       "turnover_ty": 0.01,
       "vol_now": 621,
@@ -9612,8 +9612,8 @@
       "signal_type": "OVERBOUGHT",
       "status_desc": "Quá mua cao (K=86.5 > 80)",
       "score": 10.0,
-      "target": 19574.0,
-      "stop_loss": 19094.0,
+      "target": 17748.0,
+      "stop_loss": 17313.0,
       "rank": 384
     },
     {
@@ -10142,5 +10142,5 @@
       "rank": 405
     }
   ],
-  "updated_at": "2026-11-17 09:20:05"
+  "updated_at": "2026-11-17 17:59:55"
 }
