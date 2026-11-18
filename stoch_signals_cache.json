@@ -6945,7 +6945,7 @@
       "symbol": "S4A",
       "sector": "Khác / Sản xuất",
       "date": "18/11/2026",
-      "price": 31000.0,
+      "price": 29000.5,
       "change_pct": -2.52,
       "turnover_ty": 0.03,
       "vol_now": 1101,
@@ -6962,8 +6962,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=56.4)",
       "score": 40.0,
-      "target": 32811.0,
-      "stop_loss": 29641.0,
+      "target": 30695.0,
+      "stop_loss": 27730.0,
       "rank": 278
     },
     {
@@ -7970,7 +7970,7 @@
       "symbol": "SIP",
       "sector": "Bất động sản",
       "date": "18/11/2026",
-      "price": 49500.0,
+      "price": 45000.45,
       "change_pct": -1.2,
       "turnover_ty": 5.95,
       "vol_now": 119762,
@@ -7987,8 +7987,8 @@
       "signal_type": "NEUTRAL",
       "status_desc": "Dao động bình thường (K=69.9)",
       "score": 40.0,
-      "target": 50986.0,
-      "stop_loss": 48386.0,
+      "target": 46351.0,
+      "stop_loss": 43987.0,
       "rank": 319
     },
     {
@@ -10142,5 +10142,5 @@
       "rank": 405
     }
   ],
-  "updated_at": "2026-11-18 08:38:14"
+  "updated_at": "2026-11-18 17:40:34"
 }
