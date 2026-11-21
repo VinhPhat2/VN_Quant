@@ -859,8 +859,8 @@ def index_page():
             
             <!-- Quick Symbol Input -->
             <div class="relative">
-                <input id="symbolInput" type="text" placeholder="Tìm mã CP..." value="SSI" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-brand-borderDark px-3 py-1.5 rounded-lg text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 uppercase w-40">
-                <button onclick="loadStock(document.getElementById('symbolInput').value)" class="absolute right-1 top-1 bottom-1 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded">XEM</button>
+                <input id="symbolInput" type="text" placeholder="Tìm mã CP..." value="SSI" onkeydown="if(event.key==='Enter') quickSelectStock(this.value)" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-brand-borderDark px-3 py-1.5 rounded-lg text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 uppercase w-40">
+                <button onclick="quickSelectStock(document.getElementById('symbolInput').value)" class="absolute right-1 top-1 bottom-1 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded cursor-pointer">XEM</button>
             </div>
         </div>
     </header>
@@ -1074,22 +1074,22 @@ def index_page():
         <div id="tab-sectors" class="tab-content hidden space-y-6">
             <!-- 4 Summary KPI Cards for Sectors -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                <div onclick="triggerTopCardClick('sectorTopBuy')" class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark hover:border-emerald-500/50 rounded-xl p-4 shadow-sm cursor-pointer transition">
                     <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Ngành Mạnh Nhất (%K &gt; %D)</span>
                     <div class="text-base font-extrabold text-emerald-400 mt-1 truncate" id="sectorTopBuy">--</div>
                     <div class="text-[11px] text-slate-400 mt-1 font-mono" id="sectorTopBuyPct">--% mã Bullish</div>
                 </div>
-                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                <div onclick="triggerTopCardClick('sectorTopOversold')" class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark hover:border-sky-500/50 rounded-xl p-4 shadow-sm cursor-pointer transition">
                     <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Ngành Đáy Quá Bán (&lt; 20)</span>
                     <div class="text-base font-extrabold text-sky-400 mt-1 truncate" id="sectorTopOversold">--</div>
                     <div class="text-[11px] text-slate-400 mt-1 font-mono" id="sectorTopOversoldPct">Nhiều mã vùng gom &lt; 20</div>
                 </div>
-                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                <div onclick="triggerTopCardClick('sectorTopOverbought')" class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark hover:border-amber-500/50 rounded-xl p-4 shadow-sm cursor-pointer transition">
                     <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Ngành Quá Mua (&gt; 80)</span>
                     <div class="text-base font-extrabold text-amber-400 mt-1 truncate" id="sectorTopOverbought">--</div>
                     <div class="text-[11px] text-slate-400 mt-1 font-mono" id="sectorTopOverboughtPct">Cảnh báo chốt lời</div>
                 </div>
-                <div class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark rounded-xl p-4 shadow-sm">
+                <div onclick="triggerTopCardClick('sectorTopLiquidity')" class="bg-white dark:bg-brand-card border border-brand-borderLight dark:border-brand-borderDark hover:border-purple-500/50 rounded-xl p-4 shadow-sm cursor-pointer transition">
                     <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Ngành Thanh Khoản Cao Nhất</span>
                     <div class="text-base font-extrabold text-purple-400 mt-1 truncate" id="sectorTopLiquidity">--</div>
                     <div class="text-[11px] text-slate-400 mt-1 font-mono" id="sectorTopLiquidityVal">-- Tỷ VNĐ</div>
@@ -1506,22 +1506,53 @@ def index_page():
                         <td class="p-3 text-right text-emerald-400 font-bold">${s.target.toLocaleString()}</td>
                         <td class="p-3 text-right text-rose-400 font-bold">${s.stop_loss.toLocaleString()}</td>
                         <td class="p-3 text-center">
-                            <button onclick="event.stopPropagation(); quickSelectStock('${s.symbol}')" class="px-2.5 py-1 text-[11px] font-bold rounded bg-slate-200 dark:bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-slate-700 dark:text-slate-300 transition">Xem</button>
+                            <button onclick="event.stopPropagation(); quickSelectStock('${s.symbol}', 'tab-technical')" class="px-2.5 py-1 text-[11px] font-bold rounded bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 border border-emerald-500/40 transition whitespace-nowrap shadow-sm cursor-pointer" title="Xem biểu đồ kỹ thuật mã ${s.symbol}">Xem Chart ↗</button>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
 
-        async function quickSelectStock(symbol) {
+        // Smooth scroll helper with navbar offset
+        function scrollToElementWithOffset(elId, offset = 75) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            const elementPosition = el.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - offset;
+            window.scrollTo({
+                top: Math.max(0, offsetPosition),
+                behavior: 'smooth'
+            });
+        }
+
+        function triggerTopCardClick(cardId) {
+            const btn = document.querySelector(`#${cardId} button`);
+            if (btn) btn.click();
+        }
+
+        async function quickSelectStock(symbol, forceTab = null) {
             if (!symbol) return;
             symbol = symbol.trim().toUpperCase();
             const input = document.getElementById('symbolInput');
             if (input) input.value = symbol;
             await loadStock(symbol);
-            switchTab('tab-technical');
+            
+            if (forceTab) {
+                switchTab(forceTab);
+            } else {
+                const activeTabBtn = document.querySelector('.tab-btn.active');
+                const currentTabId = activeTabBtn ? activeTabBtn.id.replace('btn-', '') : 'tab-technical';
+                if (currentTabId === 'tab-charts' || currentTabId === 'tab-flow' || currentTabId === 'tab-financials') {
+                    switchTab(currentTabId);
+                } else {
+                    switchTab('tab-technical');
+                }
+            }
+            
             setTimeout(() => {
-                Plotly.Plots.resize('plotlyTechContainer');
+                try { Plotly.Plots.resize('plotlyTechContainer'); } catch(e) {}
+                try { Plotly.Plots.resize('plotlyDecileContainer'); } catch(e) {}
+                try { Plotly.Plots.resize('plotlyFlowContainer'); } catch(e) {}
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }, 80);
         }
@@ -1765,6 +1796,7 @@ def index_page():
         let currentSelectedSector = 'Ngân hàng';
         let currentSectorSubFilter = 'all';
         let sectorAggregatedData = {};
+        let cachedSecKeys = [];
 
         function formatMoney(valInBillion) {
             if (valInBillion === null || valInBillion === undefined || isNaN(valInBillion)) return '-';
@@ -1877,6 +1909,7 @@ def index_page():
 
             // Sắp xếp các ngành theo Điểm Sức Mạnh Ngành (Score DESC)
             secKeys.sort((a, b) => sectorAggregatedData[b].score - sectorAggregatedData[a].score);
+            cachedSecKeys = secKeys;
 
             // Cập nhật 4 Thẻ KPI Tổng Quan
             if (secKeys.length > 0) {
@@ -1885,7 +1918,9 @@ def index_page():
                 const topStrongInfo = sectorAggregatedData[topStrong];
                 const elTopBuy = document.getElementById('sectorTopBuy');
                 const elTopBuyPct = document.getElementById('sectorTopBuyPct');
-                if (elTopBuy) elTopBuy.innerText = topStrong;
+                if (elTopBuy) {
+                    elTopBuy.innerHTML = `<button onclick="selectSectorDrillDown('${topStrong.replace(/'/g, "\\'")}', true)" class="text-emerald-400 hover:underline text-left font-extrabold cursor-pointer truncate w-full" title="Xem danh sách cổ phiếu ngành ${topStrong}">${topStrong} ↓</button>`;
+                }
                 if (elTopBuyPct) elTopBuyPct.innerText = `${topStrongInfo.bullish_pct}% mã Bullish • %K=${topStrongInfo.sec_k}`;
 
                 // Top Oversold Sector (Vùng đáy gom)
@@ -1894,7 +1929,9 @@ def index_page():
                 const topOsInfo = sectorAggregatedData[topOs];
                 const elTopOs = document.getElementById('sectorTopOversold');
                 const elTopOsPct = document.getElementById('sectorTopOversoldPct');
-                if (elTopOs) elTopOs.innerText = topOs;
+                if (elTopOs) {
+                    elTopOs.innerHTML = `<button onclick="selectSectorDrillDown('${topOs.replace(/'/g, "\\'")}', true)" class="text-sky-400 hover:underline text-left font-extrabold cursor-pointer truncate w-full" title="Xem danh sách cổ phiếu ngành ${topOs}">${topOs} ↓</button>`;
+                }
                 if (elTopOsPct) elTopOsPct.innerText = `${topOsInfo.oversold_count} mã vùng đáy • %K=${topOsInfo.sec_k}`;
 
                 // Top Overbought Sector
@@ -1903,7 +1940,9 @@ def index_page():
                 const topObInfo = sectorAggregatedData[topOb];
                 const elTopOb = document.getElementById('sectorTopOverbought');
                 const elTopObPct = document.getElementById('sectorTopOverboughtPct');
-                if (elTopOb) elTopOb.innerText = topOb;
+                if (elTopOb) {
+                    elTopOb.innerHTML = `<button onclick="selectSectorDrillDown('${topOb.replace(/'/g, "\\'")}', true)" class="text-amber-400 hover:underline text-left font-extrabold cursor-pointer truncate w-full" title="Xem danh sách cổ phiếu ngành ${topOb}">${topOb} ↓</button>`;
+                }
                 if (elTopObPct) elTopObPct.innerText = `${topObInfo.overbought_count} mã quá mua • %K=${topObInfo.sec_k}`;
 
                 // Top Liquidity Sector
@@ -1912,12 +1951,22 @@ def index_page():
                 const topValInfo = sectorAggregatedData[topVal];
                 const elTopVal = document.getElementById('sectorTopLiquidity');
                 const elTopValSub = document.getElementById('sectorTopLiquidityVal');
-                if (elTopVal) elTopVal.innerText = topVal;
+                if (elTopVal) {
+                    elTopVal.innerHTML = `<button onclick="selectSectorDrillDown('${topVal.replace(/'/g, "\\'")}', true)" class="text-purple-400 hover:underline text-left font-extrabold cursor-pointer truncate w-full" title="Xem danh sách cổ phiếu ngành ${topVal}">${topVal} ↓</button>`;
+                }
                 if (elTopValSub) elTopValSub.innerText = `${Math.round(topValInfo.total_val).toLocaleString()} Tỷ VNĐ (${topValInfo.count} mã)`;
             }
 
-            // Render BẢNG 1: XẾP HẠNG CHỈ BÁO STOCHASTIC CÁC NHÓM NGÀNH
+            // Render BẢNG 1, Pills và Bảng 2
+            renderSectorTable1();
+            renderSectorPills(cachedSecKeys);
+            renderSectorDrillDownStocks();
+        }
+
+        function renderSectorTable1() {
             const container = document.getElementById('sectorTableContainer');
+            if (!container || !cachedSecKeys || cachedSecKeys.length === 0) return;
+
             container.innerHTML = `
             <table class="w-full text-left border-collapse text-xs font-mono">
                 <thead class="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 uppercase">
@@ -1936,10 +1985,11 @@ def index_page():
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                    ${secKeys.map((sec, idx) => {
+                    ${cachedSecKeys.map((sec, idx) => {
                         const g = sectorAggregatedData[sec];
+                        if (!g) return '';
                         const isSelected = sec === currentSelectedSector;
-                        const rowCls = isSelected ? 'bg-emerald-500/10 dark:bg-emerald-500/10 border-l-4 border-emerald-500 font-medium' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 transition';
+                        const rowCls = isSelected ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-l-4 border-emerald-500 font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 transition';
 
                         // Best stock in sector
                         const sortedSyms = [...g.stocks].sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -1954,7 +2004,7 @@ def index_page():
                         else if (g.sec_k >= g.sec_d) barColor = 'bg-emerald-400';
 
                         return `
-                        <tr class="${rowCls} cursor-pointer" onclick="selectSectorDrillDown('${sec.replace(/'/g, "\\'")}')">
+                        <tr class="${rowCls} cursor-pointer" onclick="selectSectorDrillDown('${sec.replace(/'/g, "\\'")}', true)">
                             <td class="p-3 text-center font-bold text-slate-400">#${idx + 1}</td>
                             <td class="p-3 font-bold text-slate-900 dark:text-white flex items-center space-x-1.5">
                                 <span class="text-emerald-400 font-extrabold text-sm">●</span>
@@ -1988,26 +2038,23 @@ def index_page():
                             <td class="p-3 text-right font-mono text-slate-300">${Math.round(g.total_val).toLocaleString()} Tỷ</td>
                             <td class="p-3">
                                 ${topS.symbol ? `
-                                <span onclick="event.stopPropagation(); document.getElementById('symbolInput').value='${topS.symbol}'; loadStock('${topS.symbol}'); switchTab('tab-technical');" class="font-bold text-emerald-400 hover:underline cursor-pointer">
-                                    ${topS.symbol}
-                                </span>
+                                <button onclick="event.stopPropagation(); quickSelectStock('${topS.symbol}', 'tab-technical')" class="font-bold text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer inline-flex items-center space-x-1" title="Nhấn để xem biểu đồ kỹ thuật mã ${topS.symbol}">
+                                    <span>${topS.symbol}</span>
+                                    <span class="text-[10px] text-slate-400">↗</span>
+                                </button>
                                 <span class="text-[10px] px-1 py-0.5 rounded ml-1 ${isBuyTop ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'bg-slate-800 text-slate-400'}">
                                     ${topS.signal || 'Theo dõi'}
                                 </span>` : '-'}
                             </td>
                             <td class="p-3 text-center">
-                                <button onclick="event.stopPropagation(); selectSectorDrillDown('${sec.replace(/'/g, "\\'")}')" class="px-2.5 py-1 text-[11px] font-bold rounded ${isSelected ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30'} transition">
-                                    ${isSelected ? 'Đang Xem' : 'Xem Cổ Phiếu ↓'}
+                                <button onclick="event.stopPropagation(); selectSectorDrillDown('${sec.replace(/'/g, "\\'")}', true)" class="px-2.5 py-1 text-[11px] font-bold rounded-lg ${isSelected ? 'bg-emerald-500 text-slate-950 font-bold shadow-md' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 border border-emerald-500/30'} transition cursor-pointer">
+                                    ${isSelected ? '✓ Đang Xem' : 'Xem Cổ Phiếu ↓'}
                                 </button>
                             </td>
                         </tr>`;
                     }).join('')}
                 </tbody>
             </table>`;
-
-            // Render Sector Pills & Drill-down Stocks
-            renderSectorPills(secKeys);
-            renderSectorDrillDownStocks();
         }
 
         // Render Quick Filter Pills for Sectors
@@ -2019,11 +2066,11 @@ def index_page():
             container.innerHTML = allPills.map(sec => {
                 const isActive = sec === currentSelectedSector;
                 const activeCls = isActive ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-sm' : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-800 hover:text-emerald-400 hover:border-emerald-500/50';
-                return `<button onclick="selectSectorDrillDown('${sec.replace(/'/g, "\\'")}')" class="px-3 py-1.5 text-xs font-mono rounded-lg ${activeCls} transition whitespace-nowrap">${sec}</button>`;
+                return `<button onclick="selectSectorDrillDown('${sec.replace(/'/g, "\\'")}', false)" class="px-3 py-1.5 text-xs font-mono rounded-lg ${activeCls} transition whitespace-nowrap cursor-pointer">${sec}</button>`;
             }).join('');
         }
 
-        function selectSectorDrillDown(sec) {
+        function selectSectorDrillDown(sec, shouldScroll = true) {
             currentSelectedSector = sec;
             const titleEl = document.getElementById('drillDownSectorTitle');
             const subEl = document.getElementById('drillDownSectorSubtitle');
@@ -2039,13 +2086,13 @@ def index_page():
                 subEl.innerHTML = `Chỉ số Stochastic Ngành: <b>%K=${kStr}</b> | <b>%D=${dStr}</b> (Δ ${diffStr}) • Trạng thái: <span class="${secInfo.badge_cls || ''}">${secInfo.signal || 'Theo dõi'}</span>`;
             }
 
-            const secKeys = Object.keys(sectorAggregatedData);
-            renderSectorPills(secKeys);
+            renderSectorTable1();
+            renderSectorPills(cachedSecKeys);
             renderSectorDrillDownStocks();
 
-            // Re-render table 1 to highlight selected row
-            const rows = document.querySelectorAll('#sectorTableContainer tr');
-            // Do not call scrollIntoView to keep the top nav bar clean and stable!
+            if (shouldScroll) {
+                scrollToElementWithOffset('sectorDrillDownSection', 75);
+            }
         }
 
         function renderSectorDrillDownStocks() {
@@ -2112,6 +2159,7 @@ def index_page():
                         <th class="p-3 text-center">Độ Lệch (K - D)</th>
                         <th class="p-3 text-center">Tín Hiệu Stochastic</th>
                         <th class="p-3 text-center">Khuyến Nghị Hành Động</th>
+                        <th class="p-3 text-center">Hành Động</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -2165,11 +2213,13 @@ def index_page():
                         }
 
                         return `
-                        <tr onclick="document.getElementById('symbolInput').value='${s.symbol}'; loadStock('${s.symbol}'); switchTab('tab-technical');" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
+                        <tr onclick="quickSelectStock('${s.symbol}', 'tab-technical')" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
                             <td class="p-3 text-center text-slate-500 font-mono">#${idx + 1}</td>
-                            <td class="p-3 font-bold text-slate-900 dark:text-white text-sm hover:underline flex items-center space-x-1.5">
-                                <span>${s.symbol}</span>
-                                ${isBuy ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>' : ''}
+                            <td class="p-3 font-bold text-slate-900 dark:text-white text-sm flex items-center space-x-1.5">
+                                <button onclick="event.stopPropagation(); quickSelectStock('${s.symbol}', 'tab-technical')" class="font-bold text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer flex items-center space-x-1" title="Nhấn để xem biểu đồ kỹ thuật mã ${s.symbol}">
+                                    <span>${s.symbol}</span>
+                                    ${isBuy ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>' : ''}
+                                </button>
                             </td>
                             <td class="p-3 text-slate-400 text-[11px]">${s.sector || '-'}</td>
                             <td class="p-3 text-right font-mono text-slate-900 dark:text-slate-200">${s.price.toLocaleString()}</td>
@@ -2183,6 +2233,11 @@ def index_page():
                             <td class="p-3 text-center ${diffCls}">${diff >= 0 ? '+' : ''}${diff}</td>
                             <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] ${badgeCls}">${s.signal}</span></td>
                             <td class="p-3 text-center"><span class="px-2.5 py-0.5 rounded text-[11px] ${actionCls}">${actionText}</span></td>
+                            <td class="p-3 text-center">
+                                <button onclick="event.stopPropagation(); quickSelectStock('${s.symbol}', 'tab-technical')" class="px-2.5 py-1 text-[11px] font-bold rounded bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 border border-emerald-500/40 transition whitespace-nowrap shadow-sm cursor-pointer" title="Xem biểu đồ kỹ thuật mã ${s.symbol}">
+                                    Xem Chart ↗
+                                </button>
+                            </td>
                         </tr>`;
                     }).join('')}
                 </tbody>
@@ -2221,7 +2276,9 @@ def index_page():
             if (topVolStock) {
                 const elTop = document.getElementById('spikeTopVol');
                 const elTopRatio = document.getElementById('spikeTopVolRatio');
-                if (elTop) elTop.innerText = `${topVolStock.symbol} (${topVolStock.sector || 'HOSE'})`;
+                if (elTop) {
+                    elTop.innerHTML = `<button onclick="quickSelectStock('${topVolStock.symbol}', 'tab-technical')" class="text-emerald-400 hover:underline cursor-pointer font-bold text-left truncate w-full" title="Xem biểu đồ kỹ thuật mã ${topVolStock.symbol}">${topVolStock.symbol} (${topVolStock.sector || 'HOSE'}) ↗</button>`;
+                }
                 if (elTopRatio) elTopRatio.innerText = `${(topVolStock.vol_surge || 1.0).toFixed(2)}x Khối lượng TB 20 phiên`;
             }
 
@@ -2283,6 +2340,7 @@ def index_page():
                         <th class="p-3 text-center">Stoch %K / %D</th>
                         <th class="p-3 text-center">Tín Hiệu Stochastic</th>
                         <th class="p-3 text-center">Hành Động Đề Xuất</th>
+                        <th class="p-3 text-center">Hành Động</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -2324,9 +2382,13 @@ def index_page():
                         const volMeanStr = r.vol20_mean ? r.vol20_mean.toLocaleString() : '-';
 
                         return `
-                        <tr onclick="document.getElementById('symbolInput').value='${r.symbol}'; loadStock('${r.symbol}'); switchTab('tab-technical');" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
+                        <tr onclick="quickSelectStock('${r.symbol}', 'tab-technical')" class="hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer transition">
                             <td class="p-3 text-center text-slate-500 font-mono">#${idx + 1}</td>
-                            <td class="p-3 font-bold text-slate-900 dark:text-white text-sm">${r.symbol}</td>
+                            <td class="p-3 font-bold text-slate-900 dark:text-white text-sm">
+                                <button onclick="event.stopPropagation(); quickSelectStock('${r.symbol}', 'tab-technical')" class="font-bold text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer" title="Nhấn để xem biểu đồ kỹ thuật mã ${r.symbol}">
+                                    ${r.symbol}
+                                </button>
+                            </td>
                             <td class="p-3 text-slate-400 text-[11px]">${r.sector || '-'}</td>
                             <td class="p-3 text-right font-mono text-slate-900 dark:text-slate-200">${r.price.toLocaleString()}</td>
                             <td class="p-3 text-right font-bold ${r.change_pct > 0 ? 'text-emerald-400' : (r.change_pct < 0 ? 'text-rose-400' : 'text-slate-400')}">
@@ -2346,6 +2408,11 @@ def index_page():
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.signal_type === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' : (r.signal_type === 'SELL' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400')}">${r.signal}</span>
                             </td>
                             <td class="p-3 text-center"><span class="px-2.5 py-1 rounded text-[11px] ${actionClass}">${actionText}</span></td>
+                            <td class="p-3 text-center">
+                                <button onclick="event.stopPropagation(); quickSelectStock('${r.symbol}', 'tab-technical')" class="px-2.5 py-1 text-[11px] font-bold rounded bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 border border-emerald-500/40 transition whitespace-nowrap shadow-sm cursor-pointer" title="Xem biểu đồ kỹ thuật mã ${r.symbol}">
+                                    Xem Chart ↗
+                                </button>
+                            </td>
                         </tr>`;
                     }).join('')}
                 </tbody>
