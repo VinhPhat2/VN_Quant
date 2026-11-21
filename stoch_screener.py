@@ -109,31 +109,35 @@ def compute_stoch_signals(data_dir=None):
             k_diff = k_now - d_now
 
             if is_cross_up and (20 <= k_now <= 80):
-                signal = "MUA (%K cắt lên %D)"
+                signal = "MUA (%K vừa cắt lên %D)"
                 signal_type = "BUY"
-                status_desc = f"%K={k_now:.1f} cắt lên %D={d_now:.1f} (Vùng 20-80)"
-                # Xếp hạng: K càng gần 20 (vừa thoát đáy) điểm càng cao
+                status_desc = f"%K={k_now:.1f} vừa cắt lên %D={d_now:.1f} (Điểm mua chuẩn)"
                 score = round(100 - (k_now - 20) * 0.4, 2)
             elif is_cross_down and (20 <= k_now <= 80):
-                signal = "BÁN (%K cắt xuống %D)"
+                signal = "BÁN (%K vừa cắt xuống %D)"
                 signal_type = "SELL"
-                status_desc = f"%K={k_now:.1f} cắt xuống %D={d_now:.1f} (Vùng 20-80)"
-                score = round(30 - (k_now - 20) * 0.2, 2)
+                status_desc = f"%K={k_now:.1f} vừa cắt xuống %D={d_now:.1f} (Điểm bán chuẩn)"
+                score = round(20 - (k_now - 20) * 0.1, 2)
             elif k_now < 20:
                 signal = "QUÁ BÁN (< 20)"
                 signal_type = "OVERSOLD"
-                status_desc = f"Quá bán sâu (K={k_now:.1f} < 20)"
-                score = round(60 - k_now, 2)
+                status_desc = f"Vùng đáy gom (K={k_now:.1f} < 20)"
+                score = round(70 - k_now * 0.5, 2)
             elif k_now > 80:
                 signal = "QUÁ MUA (> 80)"
                 signal_type = "OVERBOUGHT"
-                status_desc = f"Quá mua cao (K={k_now:.1f} > 80)"
-                score = 10.0
+                status_desc = f"Quá mua cao (K={k_now:.1f} > 80 - Cảnh báo đỉnh)"
+                score = 15.0
+            elif k_now > d_now:
+                signal = "ĐANG TĂNG (%K > %D)"
+                signal_type = "BULLISH"
+                status_desc = f"Xu hướng tăng (K={k_now:.1f} > D={d_now:.1f})"
+                score = round(75 - (k_now - 20) * 0.3 + min(k_diff, 10), 2)
             else:
-                signal = "THEO DÕI (20 - 80)"
-                signal_type = "NEUTRAL"
-                status_desc = f"Dao động bình thường (K={k_now:.1f})"
-                score = 40.0
+                signal = "ĐANG GIẢM (%K < %D)"
+                signal_type = "BEARISH"
+                status_desc = f"Xu hướng giảm / điều chỉnh (K={k_now:.1f} < D={d_now:.1f})"
+                score = round(35 - max(-k_diff, 0), 2)
 
             target_price = c_now + 1.6 * atr if atr > 0 else c_now * 1.08
             stop_loss = max(c_now - 1.2 * atr, c_now * 0.85) if atr > 0 else c_now * 0.94
@@ -171,7 +175,7 @@ def compute_stoch_signals(data_dir=None):
     # 1. Các mã Mua (%K cắt lên %D) xếp lên đầu bảng, ưu tiên K thấp hơn
     # 2. Xếp theo Score và Turnover
     # =======================================================
-    stocks = sorted(stocks, key=lambda x: (-x["score"], x["stoch_k"], -x["turnover_ty"]))
+    stocks = sorted(stocks, key=lambda x: (-x["score"], -x["turnover_ty"]))
     for idx, s in enumerate(stocks):
         s["rank"] = idx + 1
 
