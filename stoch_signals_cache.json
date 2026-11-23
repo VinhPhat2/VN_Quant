@@ -4923,9 +4923,9 @@
       "price": 10300.0,
       "change_pct": 0.0,
       "turnover_ty": 0.33,
-      "vol_now": 32800,
-      "vol20_mean": 13110,
-      "vol_surge": 2.5,
+      "vol_now": 33000,
+      "vol20_mean": 13120,
+      "vol_surge": 2.52,
       "stoch_k": 14.3,
       "stoch_d": 4.8,
       "stoch_rsi_k": 3.2,
@@ -10142,5 +10142,5 @@
       "rank": 405
     }
   ],
-  "updated_at": "2026-11-23 09:14:37"
+  "updated_at": "2026-11-23 20:41:34"
 }
